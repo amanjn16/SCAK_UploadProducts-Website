@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -97,6 +96,6 @@ class Product extends Model
             ? $this->images->sortBy('sort_order')->firstWhere('is_cover', true) ?? $this->images->sortBy('sort_order')->first()
             : $this->images()->where('is_cover', true)->first() ?? $this->images()->orderBy('sort_order')->first();
 
-        return $image ? Storage::disk($image->disk)->url($image->path) : null;
+        return $image?->url;
     }
 }

@@ -248,6 +248,23 @@
                 flex-wrap: wrap;
             }
         }
+        @media (max-width: 640px) {
+            .shell {
+                padding: 16px;
+            }
+            .product-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 12px;
+            }
+            .product-card-body {
+                padding: 12px;
+                gap: 8px;
+            }
+            .floating-filter-btn,
+            .cart-chip {
+                right: 16px;
+            }
+        }
     </style>
     @stack('head')
 </head>

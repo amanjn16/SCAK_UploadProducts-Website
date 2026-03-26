@@ -96,7 +96,7 @@ class ProductUpsertService
 
         foreach ($uploadedImages as $index => $uploadedImage) {
             $fileName = Str::uuid().'.'.$uploadedImage->getClientOriginalExtension();
-            $path = $uploadedImage->storeAs('products/'.$product->slug, $fileName, $disk);
+            $path = $uploadedImage->storeAs($product->slug, $fileName, $disk);
 
             ProductImage::query()->create([
                 'product_id' => $product->id,
