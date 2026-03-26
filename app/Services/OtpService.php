@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\OtpChallenge;
 use App\Support\PhoneNumber;
 use Illuminate\Http\Client\RequestException;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -82,16 +81,27 @@ class OtpService
         }
 
         try {
-            Http::timeout((int) config('scak.otp.timeout', 15))
-                ->post(config('scak.otp.endpoint'), [
-                    'event' => 'OTP_verification',
-                    'purpose' => $challenge->purpose,
-                    'phone' => $challenge->phone,
-                    'otp' => $challenge->code,
-                    'meta' => $challenge->meta ?? [],
-                    'expires_at' => Carbon::parse($challenge->expires_at)->toIso8601String(),
-                ])
-                ->throw();
+            $payload = [
+                // Match the legacy WordPress integration exactly because the provider
+                // appears to key off this misspelled event name.
+                'event' => 'OTP_verifcation',
+                'phone' => $challenge->phone,
+                'otp' => $challenge->code,
+            ];
+
+            $response = Http::timeout((int) config('scak.otp.timeout', 15))
+                ->acceptJson()
+                ->asJson()
+                ->post(config('scak.otp.endpoint'), $payload);
+
+            Log::info('SCAK OTP provider response received.', [
+                'phone' => $challenge->phone,
+                'purpose' => $challenge->purpose,
+                'status' => $response->status(),
+                'body' => mb_substr($response->body(), 0, 1000),
+            ]);
+
+            $response->throw();
         } catch (RequestException $exception) {
             Log::error('Failed to dispatch SCAK OTP.', [
                 'phone' => $challenge->phone,
