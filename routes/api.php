@@ -16,7 +16,7 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::patch('/order-requests/{orderRequest}', [AdminOrderRequestController::class, 'update']);
 
     Route::post('/products', [AdminProductController::class, 'store']);
-    Route::patch('/products/{product}', [AdminProductController::class, 'update']);
-    Route::post('/products/{product}/images', [ProductImageController::class, 'store']);
-    Route::post('/products/{product}/share-pdf', [ProductPdfController::class, 'store']);
+    Route::patch('/products/{product:id}', [AdminProductController::class, 'update']);
+    Route::post('/products/{product:id}/images', [ProductImageController::class, 'store']);
+    Route::post('/products/{product:id}/share-pdf', [ProductPdfController::class, 'store']);
 });
