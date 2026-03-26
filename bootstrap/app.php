@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'customer.auth' => \App\Http\Middleware\EnsureCustomerAuthenticated::class,
             'admin.role' => \App\Http\Middleware\EnsureAdminRole::class,
+            'track.visitor' => \App\Http\Middleware\TrackVisitorSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

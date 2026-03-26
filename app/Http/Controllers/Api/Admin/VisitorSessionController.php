@@ -1,0 +1,47 @@
+<?php
+
+namespace App\Http\Controllers\Api\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\VisitorSession;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class VisitorSessionController extends Controller
+{
+    public function index(Request $request): JsonResponse
+    {
+        $sessions = VisitorSession::query()
+            ->with('user')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search')->toString();
+                $query->where(function ($inner) use ($search) {
+                    $inner
+                        ->where('phone', 'like', '%'.$search.'%')
+                        ->orWhere('current_page', 'like', '%'.$search.'%')
+                        ->orWhere('entry_page', 'like', '%'.$search.'%')
+                        ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', '%'.$search.'%'));
+                });
+            })
+            ->latest('last_activity_at')
+            ->paginate(100)
+            ->through(fn (VisitorSession $session) => [
+                'id' => $session->id,
+                'phone' => $session->phone,
+                'customer_name' => $session->user?->name,
+                'session_key' => $session->session_key,
+                'current_page' => $session->current_page,
+                'entry_page' => $session->entry_page,
+                'referrer' => $session->referrer,
+                'page_views' => $session->page_views,
+                'duration_seconds' => $session->duration_seconds,
+                'device_type' => $session->device_type,
+                'browser' => $session->browser,
+                'os' => $session->os,
+                'started_at' => optional($session->started_at)?->toIso8601String(),
+                'last_activity_at' => optional($session->last_activity_at)?->toIso8601String(),
+            ]);
+
+        return response()->json($sessions);
+    }
+}

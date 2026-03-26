@@ -17,7 +17,10 @@ class AuthController extends Controller
     public function requestOtp(AdminRequestOtpRequest $request): JsonResponse
     {
         $phone = PhoneNumber::normalizeIndian($request->string('phone')->toString());
-        $admin = User::query()->where('phone', $phone)->where('role', User::ROLE_ADMIN)->first();
+        $admin = User::query()
+            ->where('phone', $phone)
+            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN])
+            ->first();
 
         abort_unless($admin, 403, 'This phone number is not approved for admin access.');
 
@@ -35,7 +38,10 @@ class AuthController extends Controller
         $phone = PhoneNumber::normalizeIndian($request->string('phone')->toString());
         $this->otpService->verify('admin_login', $phone, $request->string('code')->toString());
 
-        $admin = User::query()->where('phone', $phone)->where('role', User::ROLE_ADMIN)->firstOrFail();
+        $admin = User::query()
+            ->where('phone', $phone)
+            ->whereIn('role', [User::ROLE_ADMIN, User::ROLE_SUPER_ADMIN])
+            ->firstOrFail();
         $admin->forceFill([
             'phone_verified_at' => now(),
             'last_login_at' => now(),
@@ -63,6 +69,7 @@ class AuthController extends Controller
                 'name' => $admin->name,
                 'phone' => $admin->phone,
                 'city' => $admin->city,
+                'role' => $admin->role,
             ],
         ]);
     }

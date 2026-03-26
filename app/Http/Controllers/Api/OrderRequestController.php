@@ -52,7 +52,7 @@ class OrderRequestController extends Controller
         });
 
         return response()->json([
-            'message' => 'Bucket submitted successfully.',
+            'message' => 'Order placed successfully.',
             'reference_code' => $orderRequest->reference_code,
             'status' => $orderRequest->status,
         ], 201);

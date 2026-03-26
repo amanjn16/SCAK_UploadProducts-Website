@@ -13,20 +13,23 @@
             @endif
         </div>
         <aside class="panel" style="padding: 24px;">
-            <span class="pill">{{ $product->category?->name ?? 'Catalog item' }}</span>
+            <span class="pill">{{ $product->is_active ? 'Active product' : 'Archived product' }}</span>
             <h1>{{ $product->name }}</h1>
             <p class="muted">SKU: {{ $product->sku ?: 'Will be assigned' }}</p>
             <p style="font-size: 1.45rem;"><strong>Rs. {{ number_format((float) $product->price, 2) }}</strong></p>
             <p>{{ $product->description ?: 'This product is available for offline order confirmation through the SCAK sales team.' }}</p>
-            <div class="grid">
-                <div class="pill">Supplier: {{ $product->supplier?->name ?? '-' }}</div>
-                <div class="pill">City: {{ $product->city?->name ?? '-' }}</div>
-                <div class="pill">Top Fabric: {{ $product->topFabric?->name ?? '-' }}</div>
-                <div class="pill">Dupatta Fabric: {{ $product->dupattaFabric?->name ?? '-' }}</div>
-                <div class="pill">Sizes: {{ $product->sizes->pluck('name')->implode(', ') ?: '-' }}</div>
-                <div class="pill">Features: {{ $product->features->pluck('name')->implode(', ') ?: '-' }}</div>
+            <div class="tag-list">
+                @forelse($product->tags as $tag)
+                    <div class="pill">{{ $tag->name }}</div>
+                @empty
+                    <div class="pill">No tags</div>
+                @endforelse
             </div>
-            <button class="btn-primary" style="width: 100%; margin-top: 18px;" onclick="window.scakCart.add({{ $product->id }}); window.location.href='{{ route('bucket') }}';">Add to Bucket</button>
+            @if($product->is_active)
+                <button class="btn-primary" style="width: 100%; margin-top: 18px;" onclick="window.scakCart.add({{ $product->id }}); window.location.href='{{ route('bucket') }}';">Add to Cart</button>
+            @else
+                <button class="btn-secondary" style="width: 100%; margin-top: 18px;" disabled>Archived items are view only</button>
+            @endif
         </aside>
     </section>
 @endsection

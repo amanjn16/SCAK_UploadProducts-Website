@@ -1,17 +1,17 @@
-@extends('layouts.app', ['title' => 'Your Bucket'])
+@extends('layouts.app', ['title' => 'Your Cart'])
 
 @section('content')
     <div class="panel" style="padding: 24px;">
-        <h1 style="margin-top: 0;">Your Bucket</h1>
-        <p class="muted">Review the products you want, add an optional note, and send one order request. The SCAK admin team will contact you to confirm payment and dispatch offline.</p>
+        <h1 style="margin-top: 0;">Your Cart</h1>
+        <p class="muted">Review the products you want, add an optional note, and place your order. The SCAK admin team will contact you to confirm payment and dispatch offline.</p>
         <div id="bucketItems" class="grid" style="margin-top: 18px;"></div>
-        <div id="bucketEmpty" class="empty-state" style="display: none;">Your bucket is empty. Go back to the catalog and add some products.</div>
+        <div id="bucketEmpty" class="empty-state" style="display: none;">Your cart is empty. Go back to the catalog and add some products.</div>
         <div class="field" style="margin-top: 20px;">
             <label>Optional note</label>
             <textarea id="bucketNote" rows="4" placeholder="Mention quantity preferences, timing, or any special request."></textarea>
         </div>
         <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px;">
-            <button class="btn-primary" id="submitBucketButton">Submit Order Request</button>
+            <button class="btn-primary" id="submitBucketButton">Place Order</button>
             <a class="btn-secondary" href="{{ route('catalog') }}">Back to Catalog</a>
         </div>
         <p class="muted" id="bucketMessage"></p>
@@ -47,7 +47,7 @@
                 <img src="${product.cover_image_url || 'https://placehold.co/600x750?text=SCAK'}" alt="${product.name}" style="aspect-ratio: 1 / 1; height: 100%;">
                 <div class="product-card-body">
                     <strong>${product.name}</strong>
-                    <div class="muted">${product.supplier || 'SCAK'} · ${product.city || '-'}</div>
+                    <div class="tag-list">${(product.tags || []).map(tag => `<span class="pill">${tag}</span>`).join('')}</div>
                     <div>Rs. ${Number(product.price).toFixed(2)} x ${cart[product.id]}</div>
                     <div style="display:flex; gap:10px; align-items:center;">
                         <button class="btn-secondary" onclick="updateQuantity(${product.id}, -1)">-</button>
@@ -102,13 +102,13 @@
         const data = await response.json();
 
         if (!response.ok) {
-            bucketMessage.textContent = data.message || 'Unable to submit your bucket.';
+            bucketMessage.textContent = data.message || 'Unable to place your order.';
             return;
         }
 
         window.scakCart.clear();
         await renderBucket();
-        bucketMessage.textContent = `Order request submitted. Reference code: ${data.reference_code}`;
+        bucketMessage.textContent = `Order placed. Reference code: ${data.reference_code}`;
     });
 
     renderBucket();

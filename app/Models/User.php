@@ -15,6 +15,8 @@ class User extends Authenticatable
 
     public const ROLE_ADMIN = 'admin';
 
+    public const ROLE_SUPER_ADMIN = 'super_admin';
+
     public const ROLE_CUSTOMER = 'customer';
 
     /**
@@ -79,6 +81,11 @@ class User extends Authenticatable
 
     public function isAdmin(): bool
     {
-        return $this->role === self::ROLE_ADMIN;
+        return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_SUPER_ADMIN], true);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === self::ROLE_SUPER_ADMIN;
     }
 }

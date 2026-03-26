@@ -12,20 +12,22 @@ class CatalogController extends Controller
     public function index(Request $request): JsonResponse
     {
         $products = Product::query()
-            ->with(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'images'])
-            ->where('is_active', true)
+            ->with(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images'])
+            ->when(! $request->boolean('include_archived'), fn ($query) => $query->where('is_active', true), fn ($query) => $query)
             ->when($request->filled('ids'), function ($query) use ($request) {
                 $ids = collect(explode(',', (string) $request->string('ids')))->filter()->map(fn ($id) => (int) $id);
                 $query->whereIn('id', $ids);
             })
-            ->when($request->filled('search'), fn ($query) => $query->where('name', 'like', '%'.$request->string('search')->toString().'%'))
-            ->when($request->filled('supplier'), fn ($query) => $query->whereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('slug', $request->string('supplier')->toString())))
-            ->when($request->filled('city'), fn ($query) => $query->whereHas('city', fn ($cityQuery) => $cityQuery->where('slug', $request->string('city')->toString())))
-            ->when($request->filled('category'), fn ($query) => $query->whereHas('category', fn ($categoryQuery) => $categoryQuery->where('slug', $request->string('category')->toString())))
-            ->when($request->filled('top_fabric'), fn ($query) => $query->whereHas('topFabric', fn ($fabricQuery) => $fabricQuery->where('slug', $request->string('top_fabric')->toString())))
-            ->when($request->filled('dupatta_fabric'), fn ($query) => $query->whereHas('dupattaFabric', fn ($fabricQuery) => $fabricQuery->where('slug', $request->string('dupatta_fabric')->toString())))
-            ->when($request->filled('size'), fn ($query) => $query->whereHas('sizes', fn ($sizeQuery) => $sizeQuery->where('slug', $request->string('size')->toString())))
-            ->when($request->filled('feature'), fn ($query) => $query->whereHas('features', fn ($featureQuery) => $featureQuery->where('slug', $request->string('feature')->toString())))
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = $request->string('search')->toString();
+                $query->where(function ($inner) use ($search) {
+                    $inner
+                        ->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('sku', 'like', '%'.$search.'%')
+                        ->orWhereHas('tags', fn ($tagQuery) => $tagQuery->where('name', 'like', '%'.$search.'%'));
+                });
+            })
+            ->when($request->filled('tag'), fn ($query) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('slug', $request->string('tag')->toString())))
             ->when($request->filled('min_price'), fn ($query) => $query->where('price', '>=', $request->float('min_price')))
             ->when($request->filled('max_price'), fn ($query) => $query->where('price', '<=', $request->float('max_price')))
             ->when($request->string('sort')->toString() === 'price_low', fn ($query) => $query->orderBy('price'))
@@ -40,9 +42,9 @@ class CatalogController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        abort_unless($product->is_active, 404);
+        abort_unless($product->is_active || request()->boolean('include_archived'), 404);
 
-        $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'images']);
+        $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images']);
 
         return response()->json([
             'data' => $this->transformProduct($product, true),
@@ -64,8 +66,12 @@ class CatalogController extends Controller
             'category' => $product->category?->name,
             'top_fabric' => $product->topFabric?->name,
             'dupatta_fabric' => $product->dupattaFabric?->name,
+            'status' => $product->status,
+            'is_active' => $product->is_active,
             'sizes' => $product->sizes->pluck('name')->values(),
             'features' => $product->features->pluck('name')->values(),
+            'tags' => $product->tags->pluck('name')->values(),
+            'created_at' => optional($product->created_at)?->toIso8601String(),
             'images' => $detailed
                 ? $product->images->map(fn ($image) => [
                     'id' => $image->id,

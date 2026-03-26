@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Size;
 use App\Models\Supplier;
+use App\Models\Tag;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -20,9 +21,15 @@ class ProductUpsertService
     {
         $product ??= new Product();
 
-        $supplier = $this->firstOrCreateByName(Supplier::class, $payload['supplier']);
-        $city = $this->firstOrCreateByName(City::class, $payload['city']);
-        $category = $this->firstOrCreateByName(Category::class, $payload['category']);
+        $supplier = filled($payload['supplier'] ?? null)
+            ? $this->firstOrCreateByName(Supplier::class, $payload['supplier'])
+            : null;
+        $city = filled($payload['city'] ?? null)
+            ? $this->firstOrCreateByName(City::class, $payload['city'])
+            : null;
+        $category = filled($payload['category'] ?? null)
+            ? $this->firstOrCreateByName(Category::class, $payload['category'])
+            : null;
         $topFabric = filled($payload['top_fabric'] ?? null)
             ? $this->firstOrCreateByName(Fabric::class, $payload['top_fabric'], ['type' => 'top'])
             : null;
@@ -35,9 +42,9 @@ class ProductUpsertService
             'slug' => $product->exists ? $product->slug : $this->generateUniqueSlug($payload['name']),
             'sku' => $payload['sku'] ?? $this->generateUniqueSku($payload['name']),
             'price' => $payload['price'],
-            'supplier_id' => $supplier->id,
-            'city_id' => $city->id,
-            'category_id' => $category->id,
+            'supplier_id' => $supplier?->id,
+            'city_id' => $city?->id,
+            'category_id' => $category?->id,
             'top_fabric_id' => $topFabric?->id,
             'dupatta_fabric_id' => $dupattaFabric?->id,
             'description' => $payload['description'] ?? null,
@@ -62,8 +69,13 @@ class ProductUpsertService
             ->filter()
             ->map(fn (string $name) => $this->firstOrCreateByName(Feature::class, $name)->id);
 
+        $tagIds = collect($payload['tags'] ?? [])
+            ->filter()
+            ->map(fn (string $name) => $this->firstOrCreateByName(Tag::class, $name)->id);
+
         $product->sizes()->sync($sizeIds);
         $product->features()->sync($featureIds);
+        $product->tags()->sync($tagIds);
 
         if (! empty($payload['image_order'] ?? [])) {
             $this->reorderImages($product, collect($payload['image_order']), $payload['cover_image_id'] ?? null);
@@ -71,7 +83,7 @@ class ProductUpsertService
             $this->markCoverImage($product, (int) $payload['cover_image_id']);
         }
 
-        return $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'images']);
+        return $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images']);
     }
 
     /**

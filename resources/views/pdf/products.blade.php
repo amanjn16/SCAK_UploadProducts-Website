@@ -22,9 +22,7 @@
                 <img src="{{ $product->cover_image_url }}" alt="{{ $product->name }}">
             @endif
             <div class="meta">
-                <p>Supplier: {{ $product->supplier?->name ?? '-' }}</p>
-                <p>City: {{ $product->city?->name ?? '-' }}</p>
-                <p>Category: {{ $product->category?->name ?? '-' }}</p>
+                <p>Tags: {{ $product->tags?->pluck('name')->implode(', ') ?: '-' }}</p>
             </div>
         </div>
     @endforeach

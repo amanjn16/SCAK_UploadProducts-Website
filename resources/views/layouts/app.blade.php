@@ -26,9 +26,7 @@
             min-height: 100vh;
         }
         a { color: inherit; text-decoration: none; }
-        button, input, select, textarea {
-            font: inherit;
-        }
+        button, input, select, textarea { font: inherit; }
         .shell {
             max-width: 1180px;
             margin: 0 auto;
@@ -158,16 +156,19 @@
             max-width: 42rem;
             color: #5f5144;
         }
-        .sidebar-layout {
-            display: grid;
-            grid-template-columns: 290px minmax(0, 1fr);
-            gap: 20px;
-            align-items: start;
-        }
-        .filters {
-            position: sticky;
-            top: 94px;
-            padding: 18px;
+        .floating-filter-btn {
+            position: fixed;
+            right: 24px;
+            bottom: 88px;
+            width: 56px;
+            height: 56px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
+            z-index: 16;
         }
         .cart-chip {
             position: fixed;
@@ -175,17 +176,69 @@
             bottom: 24px;
             z-index: 15;
         }
+        .drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(31, 42, 55, 0.35);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s ease;
+            z-index: 24;
+        }
+        .drawer-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: min(420px, 92vw);
+            height: 100vh;
+            background: rgba(255,255,255,0.98);
+            border-left: 1px solid var(--line);
+            box-shadow: -20px 0 40px rgba(31, 42, 55, 0.12);
+            transform: translateX(100%);
+            transition: transform .2s ease;
+            z-index: 25;
+            display: flex;
+            flex-direction: column;
+        }
+        .drawer.open {
+            transform: translateX(0);
+        }
+        .drawer-header {
+            padding: 20px 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--line);
+        }
+        .drawer-body {
+            padding: 20px 22px 28px;
+            overflow-y: auto;
+            display: grid;
+            gap: 18px;
+        }
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tile-date {
+            margin: 4px 0 10px;
+            color: #6d5842;
+            font-size: 0.95rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
         .empty-state {
             text-align: center;
             padding: 48px 20px;
             color: #6d5842;
         }
         @media (max-width: 900px) {
-            .hero,
-            .sidebar-layout {
-                grid-template-columns: 1fr;
-            }
-            .filters { position: static; }
+            .hero { grid-template-columns: 1fr; }
             .topbar {
                 flex-direction: column;
                 align-items: stretch;
@@ -207,8 +260,8 @@
         <nav class="nav">
             @auth
                 <a href="{{ route('catalog') }}">Catalog</a>
-                <a href="{{ route('bucket') }}">Bucket</a>
-                <span class="pill">{{ auth()->user()->name }} · {{ auth()->user()->phone }}</span>
+                <a href="{{ route('bucket') }}">Cart</a>
+                <span class="pill">{{ auth()->user()->name }} / {{ auth()->user()->phone }}</span>
                 <button class="btn-secondary" id="logoutButton" type="button">Logout</button>
             @else
                 <a href="{{ route('login') }}">Login</a>
@@ -221,7 +274,7 @@
     <script>
         window.scak = {
             csrfToken: document.querySelector('meta[name="csrf-token"]').content,
-            cartKey: 'scak_cart_v1'
+            cartKey: 'scak_cart_v2'
         };
 
         window.scakCart = {

@@ -28,7 +28,7 @@ class StorefrontController extends Controller
     {
         return view('storefront.product', [
             'customer' => auth()->user(),
-            'product' => $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'images']),
+            'product' => $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images']),
         ]);
     }
 

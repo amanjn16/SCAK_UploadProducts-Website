@@ -86,6 +86,11 @@ class Product extends Model
         return $this->belongsToMany(Feature::class);
     }
 
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(Tag::class)->orderBy('name');
+    }
+
     public function getCoverImageUrlAttribute(): ?string
     {
         $image = $this->relationLoaded('images')
