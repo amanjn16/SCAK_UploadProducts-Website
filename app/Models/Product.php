@@ -27,6 +27,12 @@ class Product extends Model
         'is_active',
         'status',
         'published_at',
+        'is_legacy_import',
+        'legacy_wordpress_id',
+        'legacy_wordpress_sku',
+        'legacy_published_at',
+        'legacy_modified_at',
+        'legacy_imported_at',
     ];
 
     protected $appends = ['cover_image_url'];
@@ -36,7 +42,11 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'is_active' => 'boolean',
+            'is_legacy_import' => 'boolean',
             'published_at' => 'datetime',
+            'legacy_published_at' => 'datetime',
+            'legacy_modified_at' => 'datetime',
+            'legacy_imported_at' => 'datetime',
         ];
     }
 

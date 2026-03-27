@@ -42,7 +42,7 @@ class ProductUpsertService
         $product->fill([
             'name' => $normalizedName,
             'slug' => $product->exists ? $product->slug : $this->generateUniqueSlug($normalizedName),
-            'sku' => $payload['sku'] ?? $this->generateUniqueSku($normalizedName),
+            'sku' => $payload['sku'] ?? $product->sku ?? $this->generateUniqueSku($normalizedName),
             'price' => $payload['price'],
             'supplier_id' => $supplier?->id,
             'city_id' => $city?->id,
@@ -53,7 +53,7 @@ class ProductUpsertService
             'status' => $payload['status'] ?? 'active',
             'is_active' => ($payload['status'] ?? 'active') === 'active',
             'published_at' => ($payload['status'] ?? 'active') === 'active'
-                ? ($product->published_at ?? now())
+                ? ($payload['published_at'] ?? $product->published_at ?? now())
                 : null,
         ]);
 
@@ -222,32 +222,61 @@ class ProductUpsertService
 
     protected function normalizeDisplayName(string $name): string
     {
-        return Str::of($name)
+        $normalized = Str::of($name)
             ->trim()
             ->squish()
-            ->lower()
-            ->title()
             ->toString();
+
+        return collect(explode(' ', $normalized))
+            ->filter()
+            ->map(function (string $word): string {
+                $trimmed = trim($word);
+
+                if ($trimmed === '') {
+                    return $trimmed;
+                }
+
+                if (preg_match('/^[A-Z0-9]{1,3}$/', $trimmed) === 1) {
+                    return $trimmed;
+                }
+
+                return Str::of($trimmed)->lower()->title()->toString();
+            })
+            ->implode(' ');
     }
 
     protected function storeProductImage(Product $product, UploadedFile $uploadedImage, bool $alreadyWatermarked = false): string
     {
-        $disk = config('scak.storage.disk', 'products');
-        $fileName = Str::uuid().'.jpg';
-        $path = $product->slug.'/'.$fileName;
-        $binary = $alreadyWatermarked
-            ? $uploadedImage->get()
-            : $this->renderImageWithSkuWatermark($uploadedImage, $product->sku);
+        $raw = $uploadedImage->get();
 
-        Storage::disk($disk)->put($path, $binary);
+        return $this->storeProductImageBinary(
+            product: $product,
+            raw: $alreadyWatermarked ? $raw : $this->renderBinaryWithSkuWatermark($raw, $product->sku),
+        );
+    }
+
+    public function storeLegacyProductImage(Product $product, string $raw, ?string $originalName = null): string
+    {
+        $extension = pathinfo((string) $originalName, PATHINFO_EXTENSION) ?: 'jpg';
+        $normalizedExtension = Str::lower($extension);
+        $binary = $this->renderBinaryWithSkuWatermark($raw, $product->sku);
+
+        return $this->storeProductImageBinary($product, $binary, $normalizedExtension);
+    }
+
+    protected function storeProductImageBinary(Product $product, string $raw, string $extension = 'jpg'): string
+    {
+        $disk = config('scak.storage.disk', 'products');
+        $extension = Str::of($extension)->lower()->replaceMatches('/[^a-z0-9]/', '')->value() ?: 'jpg';
+        $fileName = Str::uuid().'.'.$extension;
+        $path = $product->slug.'/'.$fileName;
+        Storage::disk($disk)->put($path, $raw);
 
         return $path;
     }
 
-    protected function renderImageWithSkuWatermark(UploadedFile $uploadedImage, ?string $sku): string
+    protected function renderBinaryWithSkuWatermark(string $raw, ?string $sku): string
     {
-        $raw = $uploadedImage->get();
-
         if (blank($sku) || ! function_exists('imagecreatefromstring')) {
             return $raw;
         }

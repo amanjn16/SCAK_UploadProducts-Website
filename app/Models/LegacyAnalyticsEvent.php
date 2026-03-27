@@ -6,38 +6,28 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class VisitorSession extends Model
+class LegacyAnalyticsEvent extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'legacy_wordpress_id',
         'user_id',
         'phone',
         'customer_name',
         'customer_city',
-        'session_key',
+        'event_type',
         'ip_address',
         'user_agent',
-        'device_type',
-        'browser',
-        'os',
-        'current_page',
-        'entry_page',
-        'referrer',
-        'page_views',
-        'duration_seconds',
-        'started_at',
-        'last_activity_at',
-        'is_legacy_import',
-        'legacy_wordpress_id',
+        'event_data',
+        'occurred_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'started_at' => 'datetime',
-            'last_activity_at' => 'datetime',
-            'is_legacy_import' => 'boolean',
+            'event_data' => 'array',
+            'occurred_at' => 'datetime',
         ];
     }
 

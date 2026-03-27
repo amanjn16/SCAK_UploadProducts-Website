@@ -34,6 +34,7 @@ class ProductController extends Controller
                     $inner
                         ->where('name', 'like', '%'.$search.'%')
                         ->orWhere('sku', 'like', '%'.$search.'%')
+                        ->orWhere('legacy_wordpress_sku', 'like', '%'.$search.'%')
                         ->orWhereHas('tags', fn ($tagQuery) => $tagQuery->where('name', 'like', '%'.$search.'%'));
                 });
             })
@@ -174,6 +175,7 @@ class ProductController extends Controller
             'name' => $product->name,
             'slug' => $product->slug,
             'sku' => $product->sku,
+            'legacy_sku' => $product->legacy_wordpress_sku,
             'price' => (float) $product->price,
             'description' => $product->description,
             'cover_image_url' => $product->cover_image_url,
@@ -184,11 +186,14 @@ class ProductController extends Controller
             'dupatta_fabric' => $product->dupattaFabric?->name,
             'status' => $product->status,
             'is_active' => $product->is_active,
+            'is_legacy_import' => $product->is_legacy_import,
             'sizes' => $product->sizes->pluck('name')->values(),
             'features' => $product->features->pluck('name')->values(),
             'tags' => $product->tags->pluck('name')->values(),
             'created_at' => optional($product->created_at)?->toIso8601String(),
             'published_at' => optional($product->published_at)?->toIso8601String(),
+            'legacy_published_at' => optional($product->legacy_published_at)?->toIso8601String(),
+            'legacy_modified_at' => optional($product->legacy_modified_at)?->toIso8601String(),
             'images' => $product->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => $image->url,

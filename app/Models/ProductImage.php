@@ -17,6 +17,7 @@ class ProductImage extends Model
         'original_name',
         'sort_order',
         'is_cover',
+        'legacy_wordpress_attachment_id',
     ];
 
     protected $appends = ['url'];
