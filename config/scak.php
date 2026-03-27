@@ -39,6 +39,13 @@ return [
         'default_city' => env('SUPPORT_DEFAULT_CITY', 'Delhi'),
         'whatsapp_message' => env('SUPPORT_WHATSAPP_MESSAGE', 'Hello SCAK, I have a query about the catalog.'),
     ],
+    'storefront' => [
+        'group_links' => [
+            ['label' => 'Wholesale Groups', 'url' => null],
+            ['label' => 'Netra Groups', 'url' => null],
+            ['label' => 'Readymade Group', 'url' => null],
+        ],
+    ],
     'wordpress' => [
         'uploads_path' => env('WP_UPLOADS_PATH'),
         'archive_path' => env('WP_ARCHIVE_PATH', storage_path('app/private/wordpress-archives')),

@@ -38,7 +38,44 @@
         .shell {
             max-width: 1180px;
             margin: 0 auto;
-            padding: 82px 24px 24px;
+            padding: 112px 24px 24px;
+        }
+        .announcement-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 28px;
+            background: #2f241d;
+            color: #f7efe2;
+            z-index: 22;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .announcement-track {
+            display: inline-flex;
+            align-items: center;
+            gap: 28px;
+            white-space: nowrap;
+            padding-left: 100%;
+            animation: scak-marquee 26s linear infinite;
+            will-change: transform;
+        }
+        .announcement-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            letter-spacing: 0.03em;
+        }
+        .announcement-item::after {
+            content: "•";
+            opacity: 0.7;
+        }
+        .announcement-item:last-child::after {
+            content: "";
         }
         .topbar {
             display: flex;
@@ -50,7 +87,7 @@
             backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(31,42,55,0.08);
             position: fixed;
-            top: 10px;
+            top: 36px;
             left: 50%;
             width: min(1180px, calc(100vw - 24px));
             transform: translate(-50%, -120%);
@@ -322,10 +359,15 @@
             color: #6d5842;
         }
         body.auth-locked .topbar,
+        body.auth-locked .announcement-bar,
         body.auth-locked .shell {
             filter: blur(12px);
             pointer-events: none;
             user-select: none;
+        }
+        @keyframes scak-marquee {
+            0% { transform: translate3d(0, 0, 0); }
+            100% { transform: translate3d(-100%, 0, 0); }
         }
         .otp-modal-shell {
             position: fixed;
@@ -354,7 +396,7 @@
         @media (max-width: 900px) {
             .hero { grid-template-columns: 1fr; }
             .topbar {
-                top: 0;
+                top: 28px;
                 width: calc(100vw - 16px);
                 border-radius: 0 0 22px 22px;
                 gap: 8px;
@@ -368,7 +410,7 @@
                 height: 36px;
             }
             .shell {
-                padding-top: 72px;
+                padding-top: 100px;
             }
             .brand-tagline {
                 display: none;
@@ -376,7 +418,7 @@
         }
         @media (max-width: 640px) {
             .shell {
-                padding: 78px 16px 16px;
+                padding: 106px 16px 16px;
             }
             .product-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -403,6 +445,30 @@
     @stack('head')
 </head>
 <body class="@guest auth-locked @endguest">
+    @if(!empty($storefrontGroupLinks))
+        <div class="announcement-bar" aria-label="Join our groups">
+            <div class="announcement-track">
+                @foreach($storefrontGroupLinks as $groupLink)
+                    @if(!empty($groupLink['url']))
+                        <a class="announcement-item" href="{{ $groupLink['url'] }}" target="_blank" rel="noopener">
+                            Join our groups - {{ $groupLink['label'] }}
+                        </a>
+                    @else
+                        <span class="announcement-item">Join our groups - {{ $groupLink['label'] }}</span>
+                    @endif
+                @endforeach
+                @foreach($storefrontGroupLinks as $groupLink)
+                    @if(!empty($groupLink['url']))
+                        <a class="announcement-item" href="{{ $groupLink['url'] }}" target="_blank" rel="noopener">
+                            Join our groups - {{ $groupLink['label'] }}
+                        </a>
+                    @else
+                        <span class="announcement-item">Join our groups - {{ $groupLink['label'] }}</span>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    @endif
     <header class="topbar">
         <a class="brand" href="{{ auth()->check() ? route('catalog') : route('login') }}">
             <img src="{{ asset('assets/brand/scak-logo.png') }}" alt="SCAK">

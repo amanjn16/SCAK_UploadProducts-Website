@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\Admin\ProductShareController;
 use App\Http\Controllers\Api\Admin\TagController;
 use App\Http\Controllers\Api\Admin\VisitorSessionController;
 use App\Http\Controllers\Api\Admin\SystemHealthController;
+use App\Http\Controllers\Api\Admin\StorefrontSettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/admin/request-otp', [AdminAuthController::class, 'requestOtp']);
@@ -51,6 +52,8 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::get('/legacy-analytics', [LegacyAnalyticsController::class, 'index']);
     Route::get('/generated-exports/{generatedExport}', [GeneratedExportController::class, 'show']);
     Route::get('/system-health', [SystemHealthController::class, 'show']);
+    Route::get('/settings/storefront', [StorefrontSettingsController::class, 'show']);
+    Route::patch('/settings/storefront', [StorefrontSettingsController::class, 'update']);
 });
 
 Route::middleware(['auth:sanctum', 'admin.role', 'super.admin'])->prefix('admin')->group(function (): void {
