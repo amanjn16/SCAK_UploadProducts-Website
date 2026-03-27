@@ -12,11 +12,16 @@ class OrderRequestController extends Controller
 {
     public function __construct(private readonly AuditLogService $auditLogService) {}
 
-    public function index(): JsonResponse
+    public function index(\Illuminate\Http\Request $request): JsonResponse
     {
         $orders = OrderRequest::query()
             ->with('items.product.images')
-            ->latest()
+            ->when(
+                $request->has('is_archived'),
+                fn ($query) => $query->where('is_archived', $request->boolean('is_archived')),
+                fn ($query) => $query->where('is_archived', false)
+            )
+            ->latest('updated_at')
             ->paginate(25);
 
         return response()->json($orders);
@@ -24,10 +29,12 @@ class OrderRequestController extends Controller
 
     public function update(UpdateOrderRequestStatusRequest $request, OrderRequest $orderRequest): JsonResponse
     {
-        $status = $request->string('status')->toString();
+        $status = $request->input('status', $orderRequest->status);
+        $isArchived = $request->boolean('is_archived', $orderRequest->is_archived);
 
         $orderRequest->fill([
             'status' => $status,
+            'is_archived' => $isArchived,
             'internal_notes' => $request->input('internal_notes'),
             'contacted_at' => $status === 'contacted' ? now() : $orderRequest->contacted_at,
             'confirmed_at' => $status === 'confirmed' ? now() : $orderRequest->confirmed_at,
@@ -39,6 +46,7 @@ class OrderRequestController extends Controller
 
         $this->auditLogService->record('order.updated', $request->user(), $orderRequest, [
             'status' => $status,
+            'is_archived' => $isArchived,
             'reference_code' => $orderRequest->reference_code,
         ], $request);
 

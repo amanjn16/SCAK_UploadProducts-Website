@@ -20,6 +20,7 @@ class OrderRequest extends Model
         'note',
         'internal_notes',
         'status',
+        'is_archived',
         'contacted_at',
         'confirmed_at',
         'paid_offline_at',
@@ -31,6 +32,7 @@ class OrderRequest extends Model
     protected function casts(): array
     {
         return [
+            'is_archived' => 'boolean',
             'contacted_at' => 'datetime',
             'confirmed_at' => 'datetime',
             'paid_offline_at' => 'datetime',

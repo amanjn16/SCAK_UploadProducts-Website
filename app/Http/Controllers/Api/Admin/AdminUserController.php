@@ -9,6 +9,8 @@ use App\Services\AuditLogService;
 use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 class AdminUserController extends Controller
 {
@@ -30,15 +32,25 @@ class AdminUserController extends Controller
     {
         abort_unless($request->user()?->isSuperAdmin(), 403, 'Only super admins can manage admins.');
 
+        try {
+            $normalizedPhone = PhoneNumber::normalizeIndian($request->string('phone')->toString());
+        } catch (InvalidArgumentException $exception) {
+            throw ValidationException::withMessages([
+                'phone' => $exception->getMessage(),
+            ]);
+        }
+
+        $payload = [
+            'name' => trim($request->string('name')->toString()),
+            'city' => $request->filled('city') ? trim($request->input('city')) : null,
+            'role' => $request->input('role', User::ROLE_ADMIN),
+            'approved_at' => now(),
+            'is_active' => $request->boolean('is_active', true),
+        ];
+
         $user = User::query()->updateOrCreate(
-            ['phone' => PhoneNumber::normalizeIndian($request->string('phone')->toString())],
-            [
-                'name' => $request->string('name')->toString(),
-                'city' => $request->string('city')->toString() ?: null,
-                'role' => $request->string('role')->toString() ?: User::ROLE_ADMIN,
-                'approved_at' => now(),
-                'is_active' => $request->boolean('is_active', true),
-            ],
+            ['phone' => $normalizedPhone],
+            $payload,
         );
 
         $this->auditLogService->record('admin.created', $request->user(), $user, $this->transformUser($user), $request);
@@ -46,7 +58,7 @@ class AdminUserController extends Controller
         return response()->json([
             'message' => 'Admin saved successfully.',
             'data' => $this->transformUser($user),
-        ], 201);
+        ], $user->wasRecentlyCreated ? 201 : 200);
     }
 
     public function destroy(Request $request, User $user): JsonResponse

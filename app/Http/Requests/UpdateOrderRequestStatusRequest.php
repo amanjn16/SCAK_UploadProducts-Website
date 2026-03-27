@@ -14,8 +14,9 @@ class UpdateOrderRequestStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['required', 'in:new,contacted,confirmed,paid_offline,dispatched,completed,cancelled'],
+            'status' => ['nullable', 'in:new,contacted,confirmed,paid_offline,dispatched,completed,cancelled'],
             'internal_notes' => ['nullable', 'string', 'max:5000'],
+            'is_archived' => ['nullable', 'boolean'],
         ];
     }
 }

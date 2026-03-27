@@ -10,6 +10,7 @@ use App\Services\CatalogCacheService;
 use App\Services\ProductUpsertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class TagController extends Controller
@@ -41,16 +42,23 @@ class TagController extends Controller
     {
         $normalizedName = $this->normalizeTagName($request->string('name')->toString());
 
-        $tag = Tag::query()->create([
+        $tag = Tag::query()->firstOrCreate([
             'name' => $normalizedName,
+        ], [
             'slug' => Str::slug($normalizedName),
         ]);
 
-        $this->auditLogService->record('tag.created', $request->user(), $tag, ['name' => $tag->name], $request);
+        $this->auditLogService->record(
+            $tag->wasRecentlyCreated ? 'tag.created' : 'tag.reused',
+            $request->user(),
+            $tag,
+            ['name' => $tag->name],
+            $request
+        );
         $this->catalogCacheService->bump();
 
         return response()->json([
-            'message' => 'Tag created successfully.',
+            'message' => $tag->wasRecentlyCreated ? 'Tag created successfully.' : 'Tag already exists.',
             'data' => [
                 'id' => $tag->id,
                 'name' => $tag->name,
@@ -63,10 +71,54 @@ class TagController extends Controller
     public function update(TagUpsertRequest $request, Tag $tag): JsonResponse
     {
         $normalizedName = $this->normalizeTagName($request->string('name')->toString());
+        $normalizedSlug = Str::slug($normalizedName);
+
+        $existingTag = Tag::query()
+            ->where('id', '!=', $tag->id)
+            ->where(function ($query) use ($normalizedName, $normalizedSlug) {
+                $query->where('name', $normalizedName)
+                    ->orWhere('slug', $normalizedSlug);
+            })
+            ->first();
+
+        if ($existingTag) {
+            return DB::transaction(function () use ($existingTag, $request, $tag) {
+                $productIds = $tag->products()->pluck('products.id')->all();
+                $existingTag->products()->syncWithoutDetaching($productIds);
+                $tag->products()->detach();
+                $tag->delete();
+
+                $products = $existingTag->products()
+                    ->with(['tags', 'sizes', 'features', 'supplier', 'city', 'category', 'topFabric', 'dupattaFabric'])
+                    ->get();
+
+                foreach ($products as $product) {
+                    $this->productUpsertService->syncSearchText($product);
+                }
+
+                $this->auditLogService->record('tag.merged', $request->user(), $existingTag, [
+                    'merged_from_id' => $tag->id,
+                    'merged_from_name' => $tag->name,
+                    'merged_into_id' => $existingTag->id,
+                    'merged_into_name' => $existingTag->name,
+                ], $request);
+                $this->catalogCacheService->bump();
+
+                return response()->json([
+                    'message' => 'Tag merged successfully.',
+                    'data' => [
+                        'id' => $existingTag->id,
+                        'name' => $existingTag->name,
+                        'slug' => $existingTag->slug,
+                        'products_count' => $existingTag->products()->count(),
+                    ],
+                ]);
+            });
+        }
 
         $tag->update([
             'name' => $normalizedName,
-            'slug' => Str::slug($normalizedName),
+            'slug' => $normalizedSlug,
         ]);
 
         $tag->load('products.tags', 'products.sizes', 'products.features', 'products.supplier', 'products.city', 'products.category', 'products.topFabric', 'products.dupattaFabric');

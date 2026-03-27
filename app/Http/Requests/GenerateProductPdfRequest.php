@@ -16,6 +16,7 @@ class GenerateProductPdfRequest extends FormRequest
         return [
             'product_ids' => ['nullable', 'array'],
             'product_ids.*' => ['integer', 'exists:products,id'],
+            'async' => ['nullable', 'boolean'],
         ];
     }
 }
