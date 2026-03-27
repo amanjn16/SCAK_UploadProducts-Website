@@ -5,15 +5,16 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $logs = AuditLog::query()
             ->with('user')
             ->latest()
-            ->paginate(100)
+            ->paginate((int) $request->integer('per_page', 100))
             ->through(fn (AuditLog $log) => [
                 'id' => $log->id,
                 'action' => $log->action,

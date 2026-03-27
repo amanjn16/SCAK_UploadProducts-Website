@@ -31,7 +31,7 @@ class CustomerController extends Controller
                 });
             })
             ->latest('last_login_at')
-            ->paginate(50)
+            ->paginate((int) $request->integer('per_page', 50))
             ->through(fn (User $customer) => [
                 'id' => $customer->id,
                 'name' => $customer->name,

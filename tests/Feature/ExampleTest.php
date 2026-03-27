@@ -189,6 +189,92 @@ class ExampleTest extends TestCase
         Storage::disk('products')->assertMissing('delete-me/test.jpg');
     }
 
+    public function test_admin_can_view_and_delete_product_batches_by_month(): void
+    {
+        Storage::fake('products');
+
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'phone' => '+919999999999',
+            'role' => User::ROLE_ADMIN,
+            'phone_verified_at' => now(),
+            'approved_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $supplier = Supplier::query()->create(['name' => 'SCAK Supplier', 'slug' => 'scak-supplier']);
+        $city = City::query()->create(['name' => 'Hisar', 'slug' => 'hisar']);
+        $category = Category::query()->create(['name' => 'Suits', 'slug' => 'suits']);
+
+        $marchProduct = Product::query()->create([
+            'name' => 'March Suit',
+            'slug' => 'march-suit',
+            'sku' => 'S4321',
+            'price' => 1500,
+            'supplier_id' => $supplier->id,
+            'city_id' => $city->id,
+            'category_id' => $category->id,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+        $marchProduct->forceFill([
+            'created_at' => now()->setDate(2026, 3, 10),
+            'updated_at' => now()->setDate(2026, 3, 10),
+        ])->save();
+
+        $februaryProduct = Product::query()->create([
+            'name' => 'February Suit',
+            'slug' => 'february-suit',
+            'sku' => 'S5432',
+            'price' => 1600,
+            'supplier_id' => $supplier->id,
+            'city_id' => $city->id,
+            'category_id' => $category->id,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+        $februaryProduct->forceFill([
+            'created_at' => now()->setDate(2026, 2, 5),
+            'updated_at' => now()->setDate(2026, 2, 5),
+        ])->save();
+
+        Storage::disk('products')->put('march-suit/test.jpg', 'image');
+        Storage::disk('products')->put('february-suit/test.jpg', 'image');
+
+        ProductImage::query()->create([
+            'product_id' => $marchProduct->id,
+            'disk' => 'products',
+            'path' => 'march-suit/test.jpg',
+            'original_name' => 'test.jpg',
+            'sort_order' => 1,
+            'is_cover' => true,
+        ]);
+
+        ProductImage::query()->create([
+            'product_id' => $februaryProduct->id,
+            'disk' => 'products',
+            'path' => 'february-suit/test.jpg',
+            'original_name' => 'test.jpg',
+            'sort_order' => 1,
+            'is_cover' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $listResponse = $this->getJson('/admin/product-batches');
+        $listResponse->assertOk()->assertJsonPath('data.0.month_key', '2026-03');
+
+        $deleteResponse = $this->deleteJson('/admin/product-batches/2026-03');
+        $deleteResponse->assertOk();
+
+        $this->assertDatabaseMissing('products', ['id' => $marchProduct->id]);
+        $this->assertDatabaseHas('products', ['id' => $februaryProduct->id]);
+        Storage::disk('products')->assertMissing('march-suit/test.jpg');
+        Storage::disk('products')->assertExists('february-suit/test.jpg');
+    }
+
     public function test_wordpress_import_dry_run_uses_modified_window_counts(): void
     {
         [$wordpressDb] = $this->setUpWordPressConnection();

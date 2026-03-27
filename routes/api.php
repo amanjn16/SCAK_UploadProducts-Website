@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\LegacyAnalyticsController;
 use App\Http\Controllers\Api\Admin\OrderRequestController as AdminOrderRequestController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
+use App\Http\Controllers\Api\Admin\ProductBatchController;
 use App\Http\Controllers\Api\Admin\ProductImageController;
 use App\Http\Controllers\Api\Admin\ProductPdfController;
 use App\Http\Controllers\Api\Admin\ProductShareController;
@@ -33,6 +34,8 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::post('/products/{product:id}/share-pdf', [ProductPdfController::class, 'store']);
     Route::post('/products/share-pdf', [ProductPdfController::class, 'batchStore']);
     Route::post('/products/share-images', [ProductShareController::class, 'store']);
+    Route::get('/product-batches', [ProductBatchController::class, 'index']);
+    Route::delete('/product-batches/{month}', [ProductBatchController::class, 'destroy']);
 
     Route::get('/tags', [TagController::class, 'index']);
     Route::post('/tags', [TagController::class, 'store']);
