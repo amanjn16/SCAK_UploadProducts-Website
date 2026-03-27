@@ -18,6 +18,8 @@
         </div>
         <div id="catalogResults"></div>
         <div id="catalogEmpty" class="panel empty-state" style="display: none;">No products match your filters yet.</div>
+        <div id="catalogLoadingMore" class="panel" style="display: none; text-align: center;">Loading more products...</div>
+        <div id="catalogSentinel" style="height: 1px;"></div>
     </section>
 
     <button class="btn-primary floating-filter-btn" id="filterFab" type="button">Filter</button>
@@ -62,6 +64,12 @@
 
 @push('scripts')
 <script>
+    let catalogProducts = [];
+    let catalogCurrentPage = 1;
+    let catalogLastPage = 1;
+    let catalogLoading = false;
+    let catalogObserver;
+
     function updateCartChip() {
         document.getElementById('cartChip').textContent = `Cart (${window.scakCart.count()})`;
     }
@@ -142,7 +150,7 @@
         }
     }
 
-    async function loadProducts() {
+    function buildProductParams() {
         const params = new URLSearchParams();
         const search = document.getElementById('searchFilter').value;
         const sort = document.getElementById('sortFilter').value;
@@ -158,21 +166,85 @@
         if (maxPrice) params.set('max_price', maxPrice);
         if (showArchive) params.set('include_archived', '1');
 
-        const response = await fetch(`/products?${params.toString()}`, { headers: { Accept: 'application/json' } });
-        const data = await response.json();
+        return params;
+    }
+
+    function syncCatalogView() {
         const results = document.getElementById('catalogResults');
         const empty = document.getElementById('catalogEmpty');
+        const loadingMore = document.getElementById('catalogLoadingMore');
 
         results.innerHTML = '';
 
-        if (!data.data || data.data.length === 0) {
+        if (!catalogProducts.length) {
             empty.style.display = 'block';
+            loadingMore.style.display = 'none';
             return;
         }
 
         empty.style.display = 'none';
-        results.innerHTML = renderGroupedProducts(data.data);
-        closeDrawer();
+        results.innerHTML = renderGroupedProducts(catalogProducts);
+        loadingMore.style.display = catalogCurrentPage < catalogLastPage ? 'block' : 'none';
+    }
+
+    async function loadProducts(reset = true) {
+        if (catalogLoading) return;
+
+        if (reset) {
+            catalogProducts = [];
+            catalogCurrentPage = 1;
+            catalogLastPage = 1;
+            syncCatalogView();
+        }
+
+        catalogLoading = true;
+        const params = buildProductParams();
+        params.set('page', String(catalogCurrentPage));
+
+        const response = await fetch(`/products?${params.toString()}`, { headers: { Accept: 'application/json' } });
+        const data = await response.json();
+
+        catalogCurrentPage = data.current_page || 1;
+        catalogLastPage = data.last_page || 1;
+
+        if (Array.isArray(data.data) && data.data.length) {
+            const seen = new Set(catalogProducts.map(product => product.id));
+            const nextProducts = data.data.filter(product => !seen.has(product.id));
+            catalogProducts = [...catalogProducts, ...nextProducts];
+        }
+
+        catalogLoading = false;
+        syncCatalogView();
+
+        if (reset) {
+            closeDrawer();
+        }
+    }
+
+    async function loadMoreProducts() {
+        if (catalogLoading || catalogCurrentPage >= catalogLastPage) return;
+
+        catalogCurrentPage += 1;
+        await loadProducts(false);
+    }
+
+    function setupInfiniteScroll() {
+        const sentinel = document.getElementById('catalogSentinel');
+        if (!sentinel) return;
+
+        if (catalogObserver) {
+            catalogObserver.disconnect();
+        }
+
+        catalogObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    loadMoreProducts();
+                }
+            });
+        }, { rootMargin: '240px 0px' });
+
+        catalogObserver.observe(sentinel);
     }
 
     function closeDrawer() {
@@ -180,17 +252,17 @@
         document.getElementById('filterOverlay').classList.remove('open');
     }
 
-    document.getElementById('applyFiltersButton').addEventListener('click', loadProducts);
+    document.getElementById('applyFiltersButton').addEventListener('click', () => loadProducts(true));
     document.getElementById('clearFiltersButton').addEventListener('click', () => {
         document.getElementById('tagFilter').value = '';
         document.getElementById('minPriceFilter').value = '';
         document.getElementById('maxPriceFilter').value = '';
         document.getElementById('showArchiveFilter').checked = false;
         document.getElementById('sortFilter').value = '';
-        loadProducts();
+        loadProducts(true);
     });
     document.getElementById('searchFilter').addEventListener('keydown', event => {
-        if (event.key === 'Enter') loadProducts();
+        if (event.key === 'Enter') loadProducts(true);
     });
     document.getElementById('filterFab').addEventListener('click', () => {
         document.getElementById('filterDrawer').classList.add('open');
@@ -200,6 +272,7 @@
     document.getElementById('filterOverlay').addEventListener('click', closeDrawer);
 
     updateCartChip();
-    loadFilters().then(loadProducts);
+    setupInfiniteScroll();
+    loadFilters().then(() => loadProducts(true));
 </script>
 @endpush
