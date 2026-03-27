@@ -262,6 +262,8 @@
             border-radius: 50%;
             box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
             z-index: 16;
+            background: rgba(255,255,255,0.96) !important;
+            border: 1px solid rgba(159, 58, 34, 0.18);
         }
         .floating-filter-btn img,
         .cart-chip img,
@@ -269,6 +271,7 @@
             width: 26px;
             height: 26px;
             object-fit: contain;
+            display: block;
         }
         .cart-chip {
             position: fixed;
@@ -283,6 +286,9 @@
             justify-content: center;
             gap: 8px;
             box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
+            background: rgba(255,255,255,0.96) !important;
+            border: 1px solid rgba(159, 58, 34, 0.18);
+            color: var(--accent) !important;
         }
         .whatsapp-chip {
             position: fixed;
@@ -296,6 +302,14 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
+            background: rgba(255,255,255,0.96) !important;
+            border: 1px solid rgba(159, 58, 34, 0.18);
+            color: var(--accent) !important;
+        }
+        .cart-chip span {
+            color: var(--accent);
+            font-weight: 700;
+            min-width: 1ch;
         }
         .drawer-overlay {
             position: fixed;
