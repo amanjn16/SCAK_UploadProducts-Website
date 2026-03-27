@@ -61,20 +61,14 @@
             align-items: center;
             border-bottom: 1px solid rgba(255,255,255,0.08);
         }
-        .announcement-marquee {
-            display: flex;
-            width: max-content;
-            min-width: 100%;
-            will-change: transform;
-            animation: scak-marquee {{ number_format((float) ($storefrontMarqueeSpeedSeconds ?? 9.6), 1, '.', '') }}s linear infinite;
-        }
         .announcement-track {
             display: inline-flex;
             align-items: center;
             gap: 28px;
             white-space: nowrap;
-            flex-shrink: 0;
-            padding-right: 28px;
+            padding-left: 100%;
+            will-change: transform;
+            animation: scak-marquee {{ number_format((float) ($storefrontMarqueeSpeedSeconds ?? 9.6), 1, '.', '') }}s linear infinite;
         }
         .announcement-item {
             display: inline-flex;
@@ -475,29 +469,25 @@
 <body class="@guest auth-locked @endguest">
     @if(!empty($storefrontGroupLinks))
         <div class="announcement-bar" aria-label="Join our groups">
-            <div class="announcement-marquee">
-                <div class="announcement-track">
-                    @foreach($storefrontGroupLinks as $groupLink)
-                        @if(!empty($groupLink['url']))
-                            <a class="announcement-item" href="{{ $groupLink['url'] }}" target="_blank" rel="noopener">
-                                Click here to join - {{ $groupLink['label'] }}
-                            </a>
-                        @else
-                            <span class="announcement-item">Click here to join - {{ $groupLink['label'] }}</span>
-                        @endif
-                    @endforeach
-                </div>
-                <div class="announcement-track" aria-hidden="true">
-                    @foreach($storefrontGroupLinks as $groupLink)
-                        @if(!empty($groupLink['url']))
-                            <a class="announcement-item" href="{{ $groupLink['url'] }}" target="_blank" rel="noopener">
-                                Click here to join - {{ $groupLink['label'] }}
-                            </a>
-                        @else
-                            <span class="announcement-item">Click here to join - {{ $groupLink['label'] }}</span>
-                        @endif
-                    @endforeach
-                </div>
+            <div class="announcement-track">
+                @foreach($storefrontGroupLinks as $groupLink)
+                    @if(!empty($groupLink['url']))
+                        <a class="announcement-item" href="{{ $groupLink['url'] }}" target="_blank" rel="noopener">
+                            Click here to join - {{ $groupLink['label'] }}
+                        </a>
+                    @else
+                        <span class="announcement-item">Click here to join - {{ $groupLink['label'] }}</span>
+                    @endif
+                @endforeach
+                @foreach($storefrontGroupLinks as $groupLink)
+                    @if(!empty($groupLink['url']))
+                        <a class="announcement-item" href="{{ $groupLink['url'] }}" target="_blank" rel="noopener">
+                            Click here to join - {{ $groupLink['label'] }}
+                        </a>
+                    @else
+                        <span class="announcement-item">Click here to join - {{ $groupLink['label'] }}</span>
+                    @endif
+                @endforeach
             </div>
         </div>
     @endif
