@@ -158,7 +158,6 @@ class WordPressImportService
 
             $attributes = $this->parseWooAttributes($meta['_product_attributes'] ?? null);
             $legacySku = filled($meta['_sku'] ?? null) ? (string) $meta['_sku'] : null;
-            $slug = Str::slug($post->post_title);
             $existingProductQuery = Product::query()->where('legacy_wordpress_id', $post->ID);
 
             if ($legacySku) {
@@ -168,12 +167,7 @@ class WordPressImportService
                 });
             }
 
-            $existingProduct = $existingProductQuery
-                ->orWhere(function ($query) use ($slug) {
-                    $query->where('is_legacy_import', true)
-                        ->where('slug', $slug);
-                })
-                ->first();
+            $existingProduct = $existingProductQuery->first();
 
             $product = $this->productUpsertService->upsert([
                 'name' => $post->post_title,
