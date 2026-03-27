@@ -69,7 +69,7 @@ class StorefrontSettingsController extends Controller
     public static function marqueeSpeedSeconds(): float
     {
         $default = (float) config('scak.storefront.marquee_speed_seconds', 9.6);
-        $stored = AppSetting::query()->where('key', self::MARQUEE_SPEED_KEY)->value('value');
+        $stored = AppSetting::get(self::MARQUEE_SPEED_KEY, $default);
 
         if ($stored === null || $stored === '') {
             return $default;
