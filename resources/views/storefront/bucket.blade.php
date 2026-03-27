@@ -46,20 +46,18 @@
                 font-size: 1rem;
             }
             .cart-actions {
-                display: flex;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 12px;
-                flex-wrap: wrap;
                 margin-top: 18px;
+                max-width: 360px;
             }
             .cart-actions .btn-primary,
             .cart-actions .btn-secondary {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-            }
-            .cart-actions > * {
-                flex: 1 1 220px;
-                text-align: center;
+                width: 100%;
             }
             .cart-help {
                 margin-top: 16px;
@@ -74,10 +72,7 @@
                     border-radius: 14px;
                 }
                 .cart-actions {
-                    flex-direction: column;
-                }
-                .cart-actions > * {
-                    width: 100%;
+                    max-width: none;
                 }
             }
         </style>
