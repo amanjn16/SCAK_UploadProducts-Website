@@ -157,9 +157,22 @@ class WordPressImportService
                 ->pluck('meta_value', 'meta_key');
 
             $attributes = $this->parseWooAttributes($meta['_product_attributes'] ?? null);
-            $existingProduct = Product::query()
-                ->where('legacy_wordpress_id', $post->ID)
-                ->orWhere('slug', Str::slug($post->post_title))
+            $legacySku = filled($meta['_sku'] ?? null) ? (string) $meta['_sku'] : null;
+            $slug = Str::slug($post->post_title);
+            $existingProductQuery = Product::query()->where('legacy_wordpress_id', $post->ID);
+
+            if ($legacySku) {
+                $existingProductQuery->orWhere(function ($query) use ($legacySku) {
+                    $query->where('is_legacy_import', true)
+                        ->where('legacy_wordpress_sku', $legacySku);
+                });
+            }
+
+            $existingProduct = $existingProductQuery
+                ->orWhere(function ($query) use ($slug) {
+                    $query->where('is_legacy_import', true)
+                        ->where('slug', $slug);
+                })
                 ->first();
 
             $product = $this->productUpsertService->upsert([
@@ -181,7 +194,7 @@ class WordPressImportService
             $product->forceFill([
                 'is_legacy_import' => true,
                 'legacy_wordpress_id' => $post->ID,
-                'legacy_wordpress_sku' => $meta['_sku'] ?? null,
+                'legacy_wordpress_sku' => $legacySku,
                 'legacy_published_at' => $post->post_date ?: null,
                 'legacy_modified_at' => $post->post_modified ?: null,
                 'legacy_imported_at' => now(),
