@@ -339,7 +339,7 @@ class WordPressImportService
                     'os' => $this->normalizeNullableString($row->os),
                     'current_page' => $this->normalizePagePath($row->page_url),
                     'entry_page' => $this->normalizePagePath($row->page_url),
-                    'referrer' => $this->normalizeNullableString($row->referrer),
+                    'referrer' => $this->normalizeNullableString($row->referrer, 255),
                     'page_views' => max(1, (int) ($row->page_views ?? 1)),
                     'duration_seconds' => max(0, (int) ($row->duration_seconds ?? 0)),
                     'started_at' => $row->visit_start,
@@ -632,13 +632,19 @@ class WordPressImportService
         return Str::limit($normalizedPath, 255, '');
     }
 
-    protected function normalizeNullableString(?string $value): ?string
+    protected function normalizeNullableString(?string $value, ?int $limit = null): ?string
     {
         if (! filled($value)) {
             return null;
         }
 
-        return trim((string) $value);
+        $normalized = trim((string) $value);
+
+        if ($limit) {
+            return Str::limit($normalized, $limit, '');
+        }
+
+        return $normalized;
     }
 
     protected function normalizeAnalyticsPayload(mixed $payload): array
