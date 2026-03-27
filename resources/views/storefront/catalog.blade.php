@@ -27,8 +27,8 @@
         </div>
         <div class="drawer-body">
             <div class="field">
-                <label>Tag</label>
-                <select id="tagFilter"><option value="">All tags</option></select>
+                <label>Tags</label>
+                <div id="tagFilterList" class="tag-list"></div>
             </div>
             <div class="field">
                 <label>Minimum rate</label>
@@ -66,6 +66,7 @@
     let catalogTotal = 0;
     let catalogLoading = false;
     let catalogObserver;
+    let selectedTagSlugs = [];
     function updateCartChip() {
         document.querySelector('#cartChip span').textContent = String(window.scakCart.count());
     }
@@ -90,7 +91,7 @@
     }
 
     function renderGroupedProducts(products) {
-        const hasFilters = document.getElementById('tagFilter').value
+        const hasFilters = selectedTagSlugs.length
             || document.getElementById('minPriceFilter').value
             || document.getElementById('maxPriceFilter').value
             || document.getElementById('searchFilter').value
@@ -125,13 +126,15 @@
     async function loadFilters() {
         const response = await fetch('{{ route('filters.index') }}', { headers: { Accept: 'application/json' } });
         const data = await response.json();
-        const tagSelect = document.getElementById('tagFilter');
+        const tagFilterList = document.getElementById('tagFilterList');
 
         (data.tags || []).forEach(option => {
-            const element = document.createElement('option');
-            element.value = option.slug;
-            element.textContent = `${option.name} (${option.products_count})`;
-            tagSelect.appendChild(element);
+            const id = `tag-filter-${option.slug}`;
+            const label = document.createElement('label');
+            label.className = 'pill';
+            label.style.justifyContent = 'flex-start';
+            label.innerHTML = `<input type="checkbox" value="${option.slug}" id="${id}" style="width:auto;"> ${option.name} (${option.products_count})`;
+            tagFilterList.appendChild(label);
         });
 
         if (data.price) {
@@ -144,14 +147,13 @@
         const params = new URLSearchParams();
         const search = document.getElementById('searchFilter').value;
         const sort = document.getElementById('sortFilter').value;
-        const tag = document.getElementById('tagFilter').value;
         const minPrice = document.getElementById('minPriceFilter').value;
         const maxPrice = document.getElementById('maxPriceFilter').value;
         const showArchive = document.getElementById('showArchiveFilter').checked;
 
         if (search) params.set('search', search);
         if (sort) params.set('sort', sort);
-        if (tag) params.set('tag', tag);
+        selectedTagSlugs.forEach(tag => params.append('tags[]', tag));
         if (minPrice) params.set('min_price', minPrice);
         if (maxPrice) params.set('max_price', maxPrice);
         if (showArchive) params.set('include_archived', '1');
@@ -249,7 +251,10 @@
 
     document.getElementById('applyFiltersButton').addEventListener('click', () => loadProducts(true));
     document.getElementById('clearFiltersButton').addEventListener('click', () => {
-        document.getElementById('tagFilter').value = '';
+        selectedTagSlugs = [];
+        document.querySelectorAll('#tagFilterList input[type="checkbox"]').forEach(input => {
+            input.checked = false;
+        });
         document.getElementById('minPriceFilter').value = '';
         document.getElementById('maxPriceFilter').value = '';
         document.getElementById('showArchiveFilter').checked = false;
@@ -265,6 +270,10 @@
     });
     document.getElementById('closeFilterDrawer').addEventListener('click', closeDrawer);
     document.getElementById('filterOverlay').addEventListener('click', closeDrawer);
+    document.getElementById('tagFilterList').addEventListener('change', () => {
+        selectedTagSlugs = Array.from(document.querySelectorAll('#tagFilterList input[type="checkbox"]:checked'))
+            .map(input => input.value);
+    });
 
     updateCartChip();
     setupInfiniteScroll();

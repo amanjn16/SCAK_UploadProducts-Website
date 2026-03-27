@@ -27,7 +27,11 @@ class CatalogController extends Controller
                         ->orWhereHas('tags', fn ($tagQuery) => $tagQuery->where('name', 'like', '%'.$search.'%'));
                 });
             })
-            ->when($request->filled('tag'), fn ($query) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('slug', $request->string('tag')->toString())))
+            ->when($this->selectedTagSlugs($request) !== [], function ($query) use ($request) {
+                $tagSlugs = $this->selectedTagSlugs($request);
+
+                $query->whereHas('tags', fn ($tagQuery) => $tagQuery->whereIn('slug', $tagSlugs));
+            })
             ->when($request->filled('min_price'), fn ($query) => $query->where('price', '>=', $request->float('min_price')))
             ->when($request->filled('max_price'), fn ($query) => $query->where('price', '<=', $request->float('max_price')))
             ->when($request->string('sort')->toString() === 'price_low', fn ($query) => $query->orderBy('price'))
@@ -84,5 +88,25 @@ class CatalogController extends Controller
                 ])->values()
                 : [],
         ];
+    }
+
+    protected function selectedTagSlugs(Request $request): array
+    {
+        $tags = $request->input('tags', []);
+
+        if (! is_array($tags)) {
+            $tags = filled($tags) ? explode(',', (string) $tags) : [];
+        }
+
+        if ($request->filled('tag')) {
+            $tags[] = $request->string('tag')->toString();
+        }
+
+        return collect($tags)
+            ->filter(fn ($tag) => filled($tag))
+            ->map(fn ($tag) => trim((string) $tag))
+            ->unique()
+            ->values()
+            ->all();
     }
 }

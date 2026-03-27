@@ -273,15 +273,21 @@
             .topbar {
                 flex-direction: column;
                 align-items: stretch;
+                top: 0;
+                width: calc(100vw - 16px);
+                border-radius: 0 0 22px 22px;
             }
             .nav {
                 justify-content: space-between;
                 flex-wrap: wrap;
             }
+            .shell {
+                padding-top: 152px;
+            }
         }
         @media (max-width: 640px) {
             .shell {
-                padding: 88px 16px 16px;
+                padding: 164px 16px 16px;
             }
             .product-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));

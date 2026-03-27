@@ -40,7 +40,11 @@ class ProductController extends Controller
                         ->orWhereHas('tags', fn ($tagQuery) => $tagQuery->where('name', 'like', '%'.$search.'%'));
                 });
             })
-            ->when($request->filled('tag'), fn ($query) => $query->whereHas('tags', fn ($tagQuery) => $tagQuery->where('slug', $request->string('tag')->toString())))
+            ->when($this->selectedTagSlugs($request) !== [], function ($query) use ($request) {
+                $tagSlugs = $this->selectedTagSlugs($request);
+
+                $query->whereHas('tags', fn ($tagQuery) => $tagQuery->whereIn('slug', $tagSlugs));
+            })
             ->latest()
             ->paginate((int) $request->integer('per_page', 50))
             ->through(fn (Product $product) => $this->transformProduct($product));
@@ -203,5 +207,25 @@ class ProductController extends Controller
                 'sort_order' => $image->sort_order,
             ])->values(),
         ];
+    }
+
+    protected function selectedTagSlugs(Request $request): array
+    {
+        $tags = $request->input('tags', []);
+
+        if (! is_array($tags)) {
+            $tags = filled($tags) ? explode(',', (string) $tags) : [];
+        }
+
+        if ($request->filled('tag')) {
+            $tags[] = $request->string('tag')->toString();
+        }
+
+        return collect($tags)
+            ->filter(fn ($tag) => filled($tag))
+            ->map(fn ($tag) => trim((string) $tag))
+            ->unique()
+            ->values()
+            ->all();
     }
 }

@@ -12,13 +12,14 @@
             </div>
             <div class="field">
                 <label>Phone</label>
-                <input id="customerOtpPhone" placeholder="9876543210">
+                <input id="customerOtpPhone" placeholder="9997558700">
             </div>
             <div class="field">
                 <label>City</label>
-                <input id="customerOtpCity" placeholder="Hisar">
+                <input id="customerOtpCity" placeholder="Delhi">
             </div>
             <button class="btn-primary" id="customerOtpRequestButton" style="width:100%; margin-top:16px;" type="button">Send WhatsApp OTP</button>
+            <p class="muted" style="margin:14px 0 0;">In case of any queries call / WhatsApp 9997558700.</p>
         </div>
         <div id="customerOtpVerifyStep" style="display:none;">
             <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
@@ -31,6 +32,7 @@
                 <input id="customerOtpCode" placeholder="1234" maxlength="4">
             </div>
             <button class="btn-primary" id="customerOtpVerifyButton" style="width:100%; margin-top:16px;" type="button">Verify OTP</button>
+            <p class="muted" style="margin:14px 0 0;">In case of any queries call / WhatsApp 9997558700.</p>
         </div>
         <p class="muted" id="customerOtpMessage" style="margin:14px 0 0;"></p>
     </div>

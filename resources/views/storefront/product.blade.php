@@ -1,11 +1,33 @@
 @extends('layouts.app', ['title' => $product->name])
 
 @section('content')
-    <section class="grid" style="grid-template-columns: minmax(0, 1fr) 360px; align-items: start;">
-        <div class="panel" style="padding: 24px;">
+    <style>
+        .product-detail-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 20px;
+            align-items: start;
+        }
+        .product-detail-main img,
+        .product-detail-gallery img {
+            display: block;
+            width: 100%;
+        }
+        .product-detail-gallery {
+            margin-top: 18px;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        }
+        @media (max-width: 900px) {
+            .product-detail-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <section class="product-detail-layout">
+        <div class="panel product-detail-main" style="padding: 24px;">
             <img src="{{ $product->cover_image_url ?? 'https://placehold.co/900x1125?text=SCAK' }}" alt="{{ $product->name }}" style="width: 100%; border-radius: 24px; aspect-ratio: 4 / 5; object-fit: cover;">
             @if($product->images->count() > 1)
-                <div class="product-grid" style="margin-top: 18px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+                <div class="product-grid product-detail-gallery">
                     @foreach($product->images as $image)
                         <img src="{{ $image->url }}" alt="{{ $product->name }}" style="border-radius: 18px; aspect-ratio: 1 / 1; object-fit: cover;">
                     @endforeach
