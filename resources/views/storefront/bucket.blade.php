@@ -62,6 +62,27 @@
             .cart-help {
                 margin-top: 16px;
             }
+            .order-success-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(31, 42, 55, 0.45);
+                backdrop-filter: blur(8px);
+                display: none;
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
+                z-index: 40;
+            }
+            .order-success-modal {
+                width: min(420px, 100%);
+                padding: 24px;
+            }
+            .order-success-actions {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+                margin-top: 18px;
+            }
             @media (max-width: 640px) {
                 .cart-item {
                     grid-template-columns: 88px minmax(0, 1fr);
@@ -87,7 +108,19 @@
             <a class="btn-secondary" href="{{ route('catalog') }}">Back to Catalog</a>
         </div>
         <p class="muted" id="bucketMessage"></p>
-        <p class="muted cart-help">In case of any queries call / WhatsApp 9997558700.</p>
+        <p class="muted cart-help">In case of any queries call / WhatsApp 9350188297.</p>
+    </div>
+    <div id="orderSuccessOverlay" class="order-success-overlay">
+        <div class="panel order-success-modal">
+            <h2 style="margin-top:0;">Order Placed</h2>
+            <p style="margin:0;">We will get back to you soon.</p>
+            <p class="muted" style="margin:10px 0 0;">For any queries call us on 9350188297.</p>
+            <p class="muted" id="orderSuccessReference" style="margin:10px 0 0;"></p>
+            <div class="order-success-actions">
+                <a class="btn-secondary" href="{{ route('catalog') }}">Back to Catalog</a>
+                <button class="btn-primary" id="closeOrderSuccessButton" type="button">Close</button>
+            </div>
+        </div>
     </div>
 @endsection
 
@@ -97,6 +130,14 @@
     const bucketEmpty = document.getElementById('bucketEmpty');
     const bucketMessage = document.getElementById('bucketMessage');
     const submitButton = document.getElementById('submitBucketButton');
+    const orderSuccessOverlay = document.getElementById('orderSuccessOverlay');
+    const orderSuccessReference = document.getElementById('orderSuccessReference');
+    const closeOrderSuccessButton = document.getElementById('closeOrderSuccessButton');
+
+    function showOrderSuccess(referenceCode) {
+        orderSuccessReference.textContent = referenceCode ? `Reference code: ${referenceCode}` : '';
+        orderSuccessOverlay.style.display = 'flex';
+    }
 
     async function renderBucket(showEmptyState = true) {
         const cart = window.scakCart.get();
@@ -193,7 +234,12 @@
 
         window.scakCart.clear();
         await renderBucket(false);
-        bucketMessage.textContent = `Order placed. Reference code: ${data.reference_code}`;
+        bucketMessage.textContent = '';
+        showOrderSuccess(data.reference_code);
+    });
+
+    closeOrderSuccessButton.addEventListener('click', () => {
+        orderSuccessOverlay.style.display = 'none';
     });
 
     renderBucket();

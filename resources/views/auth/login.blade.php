@@ -6,6 +6,7 @@
             <span class="pill">OTP-protected access</span>
             <h1>Browse the new SCAK catalog with WhatsApp OTP.</h1>
             <p>Customers verify their phone number, explore the product collection, build a bucket, and send an order request directly to the admin team for offline follow-up.</p>
+            <p class="muted">For any queries call or WhatsApp 9350188297.</p>
         </div>
         <div class="panel" style="padding: 24px;">
             <div id="stepRequestOtp">
@@ -16,13 +17,14 @@
                 </div>
                 <div class="field">
                     <label>Phone</label>
-                    <input id="customerPhone" placeholder="9876543210">
+                    <input id="customerPhone" placeholder="9350188297">
                 </div>
                 <div class="field">
                     <label>City</label>
                     <input id="customerCity" placeholder="Hisar">
                 </div>
                 <button class="btn-primary" id="requestOtpButton" style="width: 100%; margin-top: 16px;">Send WhatsApp OTP</button>
+                <p class="muted" style="margin-bottom:0;">For any queries call or WhatsApp 9350188297.</p>
             </div>
             <div id="stepVerifyOtp" style="display: none;">
                 <h2 style="margin-top: 0;">Verify OTP</h2>
@@ -33,6 +35,7 @@
                 </div>
                 <button class="btn-primary" id="verifyOtpButton" style="width: 100%; margin-top: 16px;">Enter Catalog</button>
                 <button class="btn-secondary" id="backToRequestButton" style="width: 100%; margin-top: 10px;">Change details</button>
+                <p class="muted" style="margin-bottom:0;">For any queries call or WhatsApp 9350188297.</p>
             </div>
             <p class="muted" id="authMessage" style="margin-bottom: 0;"></p>
         </div>
