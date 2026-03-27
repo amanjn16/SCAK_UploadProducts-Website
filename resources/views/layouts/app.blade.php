@@ -4,8 +4,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @php
+        $brandAssetVersion = '20260327c';
+        $brandLogoUrl = asset('assets/brand/scak-logo.png') . '?v=' . $brandAssetVersion;
+        $brandFilterUrl = asset('assets/brand/filter.png') . '?v=' . $brandAssetVersion;
+        $brandCartUrl = asset('assets/brand/cart.png') . '?v=' . $brandAssetVersion;
+        $brandWhatsappUrl = asset('assets/brand/whatsapp.png') . '?v=' . $brandAssetVersion;
+    @endphp
     <title>{{ $title ?? 'SCAK' }}</title>
-    <link rel="icon" type="image/png" href="{{ asset('assets/brand/scak-logo.png') }}">
+    <link rel="icon" type="image/png" href="{{ $brandLogoUrl }}">
     <style>
         :root {
             --sand: #f4efe7;
@@ -102,20 +109,17 @@
         .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 0;
             min-width: 0;
         }
         .brand img {
-            width: 42px;
-            height: 42px;
+            width: 124px;
+            height: 48px;
             object-fit: contain;
             flex: 0 0 auto;
         }
         .brand-copy {
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-            min-width: 0;
+            display: none;
         }
         .brand-name {
             letter-spacing: 0.18em;
@@ -406,8 +410,8 @@
                 margin-left: auto;
             }
             .brand img {
-                width: 36px;
-                height: 36px;
+                width: 108px;
+                height: 42px;
             }
             .shell {
                 padding-top: 100px;
@@ -471,11 +475,7 @@
     @endif
     <header class="topbar">
         <a class="brand" href="{{ auth()->check() ? route('catalog') : route('login') }}">
-            <img src="{{ asset('assets/brand/scak-logo.png') }}" alt="SCAK">
-            <span class="brand-copy">
-                <strong class="brand-name">SCAK</strong>
-                <span class="brand-tagline">Wholesale catalog and order requests</span>
-            </span>
+            <img src="{{ $brandLogoUrl }}" alt="SCAK">
         </a>
         <nav class="nav">
             @auth

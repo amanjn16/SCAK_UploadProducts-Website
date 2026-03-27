@@ -19,7 +19,7 @@
     </section>
 
     <button class="btn-primary floating-filter-btn" id="filterFab" type="button" aria-label="Open filters">
-        <img src="{{ asset('assets/brand/filter.png') }}" alt="">
+            <img src="{{ $brandFilterUrl ?? (asset('assets/brand/filter.png') . '?v=20260327c') }}" alt="">
     </button>
     <div class="drawer-overlay" id="filterOverlay"></div>
     <aside class="drawer" id="filterDrawer">
@@ -58,11 +58,11 @@
         </div>
     </aside>
     <a class="btn-primary cart-chip" href="{{ route('bucket') }}" id="cartChip" aria-label="Open cart">
-        <img src="{{ asset('assets/brand/cart.png') }}" alt="">
+            <img src="{{ $brandCartUrl ?? (asset('assets/brand/cart.png') . '?v=20260327c') }}" alt="">
         <span>0</span>
     </a>
     <a class="btn-primary whatsapp-chip" href="https://wa.me/919350188297?text={{ rawurlencode(config('scak.support.whatsapp_message')) }}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
-        <img src="{{ asset('assets/brand/whatsapp.png') }}" alt="">
+            <img src="{{ $brandWhatsappUrl ?? (asset('assets/brand/whatsapp.png') . '?v=20260327c') }}" alt="">
     </a>
 @endsection
 

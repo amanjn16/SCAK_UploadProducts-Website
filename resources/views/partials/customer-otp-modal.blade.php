@@ -3,7 +3,7 @@
     <div id="customerOtpModalShell" class="otp-modal-shell open">
         <div id="customerOtpModal" class="panel" style="width:min(420px, calc(100vw - 24px)); max-width:100%; max-height:min(84vh, 720px); overflow-y:auto; padding:22px;">
             <div style="display:flex; align-items:center; gap:12px;">
-                <img src="{{ asset('assets/brand/scak-logo.png') }}" alt="SCAK" style="width:56px; height:56px; object-fit:contain;">
+            <img src="{{ $brandLogoUrl ?? (asset('assets/brand/scak-logo.png') . '?v=20260327c') }}" alt="SCAK" style="width:56px; height:56px; object-fit:contain;">
                 <div>
                     <strong>Verify To Continue</strong>
                     <p class="muted" style="margin:6px 0 0;">Verify by OTP to browse the SCAK catalog and place your order.</p>
