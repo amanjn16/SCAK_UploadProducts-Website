@@ -21,6 +21,7 @@ class ProductUpsertService
     public function upsert(array $payload, ?Product $product = null): Product
     {
         $product ??= new Product();
+        $normalizedName = $this->normalizeDisplayName($payload['name']);
 
         $supplier = filled($payload['supplier'] ?? null)
             ? $this->firstOrCreateByName(Supplier::class, $payload['supplier'])
@@ -39,9 +40,9 @@ class ProductUpsertService
             : null;
 
         $product->fill([
-            'name' => $payload['name'],
-            'slug' => $product->exists ? $product->slug : $this->generateUniqueSlug($payload['name']),
-            'sku' => $payload['sku'] ?? $this->generateUniqueSku($payload['name']),
+            'name' => $normalizedName,
+            'slug' => $product->exists ? $product->slug : $this->generateUniqueSlug($normalizedName),
+            'sku' => $payload['sku'] ?? $this->generateUniqueSku($normalizedName),
             'price' => $payload['price'],
             'supplier_id' => $supplier?->id,
             'city_id' => $city?->id,
@@ -162,12 +163,7 @@ class ProductUpsertService
 
     protected function firstOrCreateTagByName(string $name): Tag
     {
-        $normalizedName = Str::of($name)
-            ->trim()
-            ->squish()
-            ->lower()
-            ->title()
-            ->toString();
+        $normalizedName = $this->normalizeDisplayName($name);
 
         return Tag::query()->firstOrCreate(
             ['slug' => Str::slug($normalizedName)],
@@ -222,6 +218,16 @@ class ProductUpsertService
         }
 
         return $candidate;
+    }
+
+    protected function normalizeDisplayName(string $name): string
+    {
+        return Str::of($name)
+            ->trim()
+            ->squish()
+            ->lower()
+            ->title()
+            ->toString();
     }
 
     protected function storeProductImage(Product $product, UploadedFile $uploadedImage, bool $alreadyWatermarked = false): string
