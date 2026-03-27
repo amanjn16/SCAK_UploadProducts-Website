@@ -1,12 +1,11 @@
 @guest
     <div id="customerOtpOverlay" class="drawer-overlay"></div>
-    <div id="customerOtpModal" class="panel" style="display:none; position:fixed; inset:auto 16px 16px 16px; z-index:30; max-width:460px; margin:0 auto; left:0; right:0; padding:22px;">
+    <div id="customerOtpModal" class="panel" style="display:block; position:fixed; inset:auto 16px 16px 16px; z-index:30; max-width:460px; margin:0 auto; left:0; right:0; padding:22px;">
         <div id="customerOtpRequestStep">
             <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
                 <strong>Verify To Continue</strong>
-                <button class="btn-secondary" id="customerOtpClose" type="button">Later</button>
             </div>
-            <p class="muted" style="margin:10px 0 0;">Browse freely for now. Verify by OTP to place your order and save your activity.</p>
+            <p class="muted" style="margin:10px 0 0;">Verify by OTP to browse the SCAK catalog and place your order.</p>
             <div class="field" style="margin-top:14px;">
                 <label>Name</label>
                 <input id="customerOtpName" placeholder="Enter your name">
@@ -53,11 +52,13 @@
             }
 
             function openPrompt() {
+                document.body.classList.add('auth-locked');
                 overlay.classList.add('open');
                 modal.style.display = 'block';
             }
 
             function closePrompt() {
+                document.body.classList.remove('auth-locked');
                 overlay.classList.remove('open');
                 modal.style.display = 'none';
             }
@@ -118,14 +119,14 @@
             document.getElementById('customerOtpRequestButton').addEventListener('click', requestOtp);
             document.getElementById('customerOtpVerifyButton').addEventListener('click', verifyOtp);
             document.getElementById('customerOtpBack').addEventListener('click', showRequestStep);
-            document.getElementById('customerOtpClose').addEventListener('click', closePrompt);
-            overlay.addEventListener('click', closePrompt);
 
             window.scakAuthPrompt = {
                 open: openPrompt,
                 close: closePrompt,
                 reset: showRequestStep,
             };
+
+            openPrompt();
         })();
     </script>
     @endpush

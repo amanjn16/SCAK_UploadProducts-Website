@@ -66,8 +66,6 @@
     let catalogTotal = 0;
     let catalogLoading = false;
     let catalogObserver;
-    let otpPromptTimer;
-
     function updateCartChip() {
         document.querySelector('#cartChip span').textContent = String(window.scakCart.count());
     }
@@ -271,11 +269,5 @@
     updateCartChip();
     setupInfiniteScroll();
     loadFilters().then(() => loadProducts(true));
-
-    @guest
-    otpPromptTimer = window.setTimeout(() => {
-        window.scakAuthPrompt?.open();
-    }, 15000);
-    @endguest
 </script>
 @endpush

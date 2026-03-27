@@ -25,6 +25,9 @@
                 linear-gradient(180deg, #f8f5ef 0%, #efe6d8 100%);
             min-height: 100vh;
         }
+        body.auth-locked {
+            overflow: hidden;
+        }
         a { color: inherit; text-decoration: none; }
         button, input, select, textarea { font: inherit; }
         .shell {
@@ -259,6 +262,12 @@
             padding: 48px 20px;
             color: #6d5842;
         }
+        body.auth-locked .topbar,
+        body.auth-locked .shell {
+            filter: blur(12px);
+            pointer-events: none;
+            user-select: none;
+        }
         @media (max-width: 900px) {
             .hero { grid-template-columns: 1fr; }
             .topbar {
@@ -290,7 +299,7 @@
     </style>
     @stack('head')
 </head>
-<body>
+<body class="@guest auth-locked @endguest">
     <header class="topbar">
         <a class="brand" href="{{ auth()->check() ? route('catalog') : route('login') }}">
             <strong>SCAK</strong>
