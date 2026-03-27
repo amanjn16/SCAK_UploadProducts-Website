@@ -12,7 +12,23 @@ class CatalogController extends Controller
     public function index(Request $request): JsonResponse
     {
         $products = Product::query()
-            ->with(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images'])
+            ->select([
+                'id',
+                'name',
+                'slug',
+                'sku',
+                'price',
+                'status',
+                'is_active',
+                'created_at',
+                'published_at',
+                'legacy_published_at',
+                'legacy_modified_at',
+            ])
+            ->with([
+                'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+            ])
             ->when(! $request->boolean('include_archived'), fn ($query) => $query->where('is_active', true), fn ($query) => $query)
             ->when($request->filled('ids'), function ($query) use ($request) {
                 $ids = collect(explode(',', (string) $request->string('ids')))->filter()->map(fn ($id) => (int) $id);
@@ -48,7 +64,12 @@ class CatalogController extends Controller
     {
         abort_unless($product->is_active || request()->boolean('include_archived'), 404);
 
-        $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images']);
+        $product->load([
+            'tags:id,name,slug',
+            'images:id,product_id,disk,path,original_name,sort_order,is_cover',
+            'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+            'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+        ]);
 
         return response()->json([
             'data' => $this->transformProduct($product, true),
@@ -57,37 +78,35 @@ class CatalogController extends Controller
 
     protected function transformProduct(Product $product, bool $detailed = false): array
     {
-        return [
+        $payload = [
             'id' => $product->id,
             'name' => $product->name,
             'slug' => $product->slug,
             'sku' => $product->sku,
             'price' => (float) $product->price,
-            'description' => $product->description,
             'cover_image_url' => $product->cover_image_url,
-            'supplier' => $product->supplier?->name,
-            'city' => $product->city?->name,
-            'category' => $product->category?->name,
-            'top_fabric' => $product->topFabric?->name,
-            'dupatta_fabric' => $product->dupattaFabric?->name,
             'status' => $product->status,
             'is_active' => $product->is_active,
-            'sizes' => $product->sizes->pluck('name')->values(),
-            'features' => $product->features->pluck('name')->values(),
-            'tags' => $product->tags->pluck('name')->values(),
             'created_at' => optional($product->created_at)?->toIso8601String(),
             'published_at' => optional($product->published_at)?->toIso8601String(),
             'legacy_published_at' => optional($product->legacy_published_at)?->toIso8601String(),
             'legacy_modified_at' => optional($product->legacy_modified_at)?->toIso8601String(),
-            'images' => $detailed
-                ? $product->images->map(fn ($image) => [
-                    'id' => $image->id,
-                    'url' => $image->url,
-                    'is_cover' => $image->is_cover,
-                    'sort_order' => $image->sort_order,
-                ])->values()
-                : [],
         ];
+
+        if (! $detailed) {
+            return $payload;
+        }
+
+        $payload['description'] = $product->description;
+        $payload['tags'] = $product->tags->pluck('name')->values();
+        $payload['images'] = $product->images->map(fn ($image) => [
+            'id' => $image->id,
+            'url' => $image->url,
+            'is_cover' => $image->is_cover,
+            'sort_order' => $image->sort_order,
+        ])->values();
+
+        return $payload;
     }
 
     protected function selectedTagSlugs(Request $request): array

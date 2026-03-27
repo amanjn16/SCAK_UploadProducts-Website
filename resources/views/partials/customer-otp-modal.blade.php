@@ -6,20 +6,14 @@
                 <strong>Verify To Continue</strong>
             </div>
             <p class="muted" style="margin:10px 0 0;">Verify by OTP to browse the SCAK catalog and place your order.</p>
-            <div class="field" style="margin-top:14px;">
-                <label>Name</label>
-                <input id="customerOtpName" placeholder="Enter your name">
-            </div>
-            <div class="field">
-                <label>Phone</label>
-                <input id="customerOtpPhone" placeholder="9350188297">
-            </div>
-            <div class="field">
-                <label>City</label>
-                <input id="customerOtpCity" placeholder="Delhi">
-            </div>
+            @include('partials.customer-contact-fields', [
+                'nameId' => 'customerOtpName',
+                'phoneId' => 'customerOtpPhone',
+                'cityId' => 'customerOtpCity',
+                'withTopMargin' => true,
+            ])
             <button class="btn-primary" id="customerOtpRequestButton" style="width:100%; margin-top:16px;" type="button">Send WhatsApp OTP</button>
-            <p class="muted" style="margin:14px 0 0;">In case of any queries call / WhatsApp 9350188297.</p>
+            @include('partials.customer-support-note')
         </div>
         <div id="customerOtpVerifyStep" style="display:none;">
             <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
@@ -32,7 +26,7 @@
                 <input id="customerOtpCode" placeholder="1234" maxlength="4">
             </div>
             <button class="btn-primary" id="customerOtpVerifyButton" style="width:100%; margin-top:16px;" type="button">Verify OTP</button>
-            <p class="muted" style="margin:14px 0 0;">In case of any queries call / WhatsApp 9350188297.</p>
+            @include('partials.customer-support-note')
         </div>
         <p class="muted" id="customerOtpMessage" style="margin:14px 0 0;"></p>
     </div>

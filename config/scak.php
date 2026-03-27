@@ -13,6 +13,16 @@ return [
     'storage' => [
         'disk' => env('PRODUCT_STORAGE_DISK', 'products'),
     ],
+    'images' => [
+        'max_dimension' => (int) env('PRODUCT_IMAGE_MAX_DIMENSION', 1600),
+        'jpeg_quality' => (int) env('PRODUCT_IMAGE_JPEG_QUALITY', 82),
+        'webp_quality' => (int) env('PRODUCT_IMAGE_WEBP_QUALITY', 80),
+        'prefer_webp' => (bool) env('PRODUCT_IMAGE_PREFER_WEBP', true),
+    ],
+    'support' => [
+        'phone' => env('SUPPORT_PHONE', '9350188297'),
+        'default_city' => env('SUPPORT_DEFAULT_CITY', 'Delhi'),
+    ],
     'wordpress' => [
         'uploads_path' => env('WP_UPLOADS_PATH'),
         'archive_path' => env('WP_ARCHIVE_PATH', storage_path('app/private/wordpress-archives')),

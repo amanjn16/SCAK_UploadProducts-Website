@@ -16,7 +16,10 @@ use Illuminate\Support\Str;
 
 class WordPressImportService
 {
-    public function __construct(private readonly ProductUpsertService $productUpsertService) {}
+    public function __construct(
+        private readonly ProductUpsertService $productUpsertService,
+        private readonly WordPressDataNormalizer $normalizer,
+    ) {}
 
     public function import(array $options = []): array
     {
@@ -60,7 +63,7 @@ class WordPressImportService
         $count = 0;
 
         foreach ($rows as $row) {
-            $phone = $this->normalizePhone($row->phone);
+            $phone = $this->normalizer->normalizePhone($row->phone);
             $existingUser = User::query()->where('phone', $phone)->first();
 
             if ($existingUser) {
@@ -105,7 +108,7 @@ class WordPressImportService
         $count = 0;
 
         foreach ($rows as $row) {
-            $phone = $this->normalizePhone($row->phone);
+            $phone = $this->normalizer->normalizePhone($row->phone);
             $existingUser = User::query()->where('phone', $phone)->first();
 
             if ($existingUser) {
@@ -156,7 +159,7 @@ class WordPressImportService
                 ->where('post_id', $post->ID)
                 ->pluck('meta_value', 'meta_key');
 
-            $attributes = $this->parseWooAttributes($meta['_product_attributes'] ?? null);
+            $attributes = $this->normalizer->parseWooAttributes($meta['_product_attributes'] ?? null);
             $legacySku = filled($meta['_sku'] ?? null) ? (string) $meta['_sku'] : null;
             $existingProductQuery = Product::query()->where('legacy_wordpress_id', $post->ID);
 
@@ -172,15 +175,15 @@ class WordPressImportService
             $product = $this->productUpsertService->upsert([
                 'name' => $post->post_title,
                 'price' => (float) ($meta['_price'] ?? $meta['_regular_price'] ?? 0),
-                'supplier' => $this->attributeFirstValue($attributes, 'supplier', 'Unknown Supplier'),
-                'city' => $this->attributeFirstValue($attributes, 'supplier_city', 'Unknown City'),
-                'category' => $this->attributeFirstValue($attributes, 'category', 'General'),
-                'top_fabric' => $this->attributeFirstValue($attributes, 'top_fabric'),
-                'dupatta_fabric' => $this->attributeFirstValue($attributes, 'dupatta_fabric'),
+                'supplier' => $this->normalizer->attributeFirstValue($attributes, 'supplier', 'Unknown Supplier'),
+                'city' => $this->normalizer->attributeFirstValue($attributes, 'supplier_city', 'Unknown City'),
+                'category' => $this->normalizer->attributeFirstValue($attributes, 'category', 'General'),
+                'top_fabric' => $this->normalizer->attributeFirstValue($attributes, 'top_fabric'),
+                'dupatta_fabric' => $this->normalizer->attributeFirstValue($attributes, 'dupatta_fabric'),
                 'description' => $post->post_content,
-                'sizes' => $this->attributeValues($attributes, 'sizes'),
-                'features' => $this->attributeValues($attributes, 'special_features'),
-                'tags' => $this->buildLegacyTags($attributes),
+                'sizes' => $this->normalizer->attributeValues($attributes, 'sizes'),
+                'features' => $this->normalizer->attributeValues($attributes, 'special_features'),
+                'tags' => $this->normalizer->buildLegacyTags($attributes),
                 'status' => $post->post_status === 'publish' ? 'active' : 'archived',
                 'published_at' => $post->post_date ?: null,
             ], $existingProduct);
@@ -223,7 +226,7 @@ class WordPressImportService
 
         foreach ($optionMap as $optionName => [$modelClass, $extra]) {
             $raw = $connection->table('options')->where('option_name', $optionName)->value('option_value');
-            $values = collect($this->maybeUnserialize($raw))->filter()->map(fn ($value) => trim((string) $value))->unique();
+            $values = collect($this->normalizer->maybeUnserialize($raw))->filter()->map(fn ($value) => trim((string) $value))->unique();
 
             foreach ($values as $value) {
                 $modelClass::query()->firstOrCreate(
@@ -320,7 +323,7 @@ class WordPressImportService
         ];
 
         foreach ($rows as $row) {
-            $phone = $this->normalizePhone($row->phone);
+            $phone = $this->normalizer->normalizePhone($row->phone);
             $user = $phone ? User::query()->where('phone', $phone)->first() : null;
             $existing = VisitorSession::query()->where('legacy_wordpress_id', $row->id)->first();
 
@@ -334,12 +337,12 @@ class WordPressImportService
                     'session_key' => (string) ($row->session_id ?: 'wp-visitor-'.$row->id),
                     'ip_address' => $row->ip_address,
                     'user_agent' => $row->user_agent,
-                    'device_type' => $this->normalizeNullableString($row->device_type),
-                    'browser' => $this->normalizeNullableString($row->browser),
-                    'os' => $this->normalizeNullableString($row->os),
-                    'current_page' => $this->normalizePagePath($row->page_url),
-                    'entry_page' => $this->normalizePagePath($row->page_url),
-                    'referrer' => $this->normalizeNullableString($row->referrer, 255),
+                    'device_type' => $this->normalizer->normalizeNullableString($row->device_type),
+                    'browser' => $this->normalizer->normalizeNullableString($row->browser),
+                    'os' => $this->normalizer->normalizeNullableString($row->os),
+                    'current_page' => $this->normalizer->normalizePagePath($row->page_url),
+                    'entry_page' => $this->normalizer->normalizePagePath($row->page_url),
+                    'referrer' => $this->normalizer->normalizeNullableString($row->referrer, 255),
                     'page_views' => max(1, (int) ($row->page_views ?? 1)),
                     'duration_seconds' => max(0, (int) ($row->duration_seconds ?? 0)),
                     'started_at' => $row->visit_start,
@@ -373,7 +376,7 @@ class WordPressImportService
         ];
 
         foreach ($rows as $row) {
-            $phone = $this->normalizePhone($row->phone);
+            $phone = $this->normalizer->normalizePhone($row->phone);
             $user = $phone ? User::query()->where('phone', $phone)->first() : null;
             $existing = LegacyAnalyticsEvent::query()->where('legacy_wordpress_id', $row->id)->first();
 
@@ -387,7 +390,7 @@ class WordPressImportService
                     'event_type' => $row->event_type,
                     'ip_address' => $row->ip_address,
                     'user_agent' => $row->user_agent,
-                    'event_data' => $this->normalizeAnalyticsPayload($row->event_data),
+                    'event_data' => $this->normalizer->normalizeAnalyticsPayload($row->event_data),
                     'occurred_at' => $row->created_at,
                 ],
             );
@@ -461,7 +464,7 @@ class WordPressImportService
     protected function getProductPosts(array $options): Collection
     {
         $connection = DB::connection('wordpress');
-        $dateColumn = $this->resolveWordPressDateColumn($options['basis']);
+        $dateColumn = $this->normalizer->resolveWordPressDateColumn($options['basis']);
 
         return $connection->table('posts')
             ->where('post_type', 'product')
@@ -505,49 +508,6 @@ class WordPressImportService
         return $count;
     }
 
-    protected function buildLegacyTags(array $attributes): array
-    {
-        return collect([
-            ...$this->attributeValues($attributes, 'supplier'),
-            ...$this->attributeValues($attributes, 'supplier_city'),
-            ...$this->attributeValues($attributes, 'category'),
-            ...$this->attributeValues($attributes, 'top_fabric'),
-            ...$this->attributeValues($attributes, 'dupatta_fabric'),
-            ...$this->attributeValues($attributes, 'sizes'),
-            ...$this->attributeValues($attributes, 'special_features'),
-        ])->filter()->unique()->values()->all();
-    }
-
-    protected function attributeFirstValue(array $attributes, string $key, ?string $default = null): ?string
-    {
-        $value = $attributes[$key] ?? null;
-
-        if (is_array($value)) {
-            return $value[0] ?? $default;
-        }
-
-        return $value ?: $default;
-    }
-
-    protected function attributeValues(array $attributes, string $key): array
-    {
-        $value = $attributes[$key] ?? null;
-
-        if (blank($value)) {
-            return [];
-        }
-
-        return is_array($value) ? $value : [$value];
-    }
-
-    protected function resolveWordPressDateColumn(string $basis): string
-    {
-        return match ($basis) {
-            'created', 'published' => 'post_date',
-            default => 'post_modified',
-        };
-    }
-
     protected function summarizeOptions(array $options): array
     {
         return [
@@ -588,127 +548,4 @@ class WordPressImportService
         ];
     }
 
-    protected function normalizePhone(?string $phone): ?string
-    {
-        if (blank($phone)) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', (string) $phone) ?: '';
-
-        if ($digits === '') {
-            return null;
-        }
-
-        if (Str::startsWith((string) $phone, '+')) {
-            return '+'.$digits;
-        }
-
-        if (strlen($digits) === 10) {
-            return (string) config('scak.otp.country_code', '+91').$digits;
-        }
-
-        if (strlen($digits) === 12 && Str::startsWith($digits, '91')) {
-            return '+'.$digits;
-        }
-
-        return '+'.$digits;
-    }
-
-    protected function normalizePagePath(?string $url): ?string
-    {
-        if (blank($url)) {
-            return null;
-        }
-
-        $path = parse_url((string) $url, PHP_URL_PATH);
-        $query = parse_url((string) $url, PHP_URL_QUERY);
-        $normalizedPath = $path ?: '/';
-
-        if ($query) {
-            $normalizedPath .= '?'.$query;
-        }
-
-        return Str::limit($normalizedPath, 255, '');
-    }
-
-    protected function normalizeNullableString(?string $value, ?int $limit = null): ?string
-    {
-        if (! filled($value)) {
-            return null;
-        }
-
-        $normalized = trim((string) $value);
-
-        if ($limit) {
-            return Str::limit($normalized, $limit, '');
-        }
-
-        return $normalized;
-    }
-
-    protected function normalizeAnalyticsPayload(mixed $payload): array
-    {
-        if (is_array($payload)) {
-            return $payload;
-        }
-
-        if (! is_string($payload) || trim($payload) === '') {
-            return [];
-        }
-
-        $decoded = json_decode($payload, true);
-
-        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-            return $decoded;
-        }
-
-        return ['raw' => $payload];
-    }
-
-    protected function parseWooAttributes(mixed $rawAttributes): array
-    {
-        $attributes = [];
-        $decoded = $this->maybeUnserialize($rawAttributes);
-
-        if (! is_array($decoded)) {
-            return $attributes;
-        }
-
-        foreach ($decoded as $key => $attribute) {
-            $value = data_get($attribute, 'value');
-
-            if (! filled($value)) {
-                continue;
-            }
-
-            $normalizedKey = Str::of((string) $key)
-                ->lower()
-                ->replace('pa_', '')
-                ->replace('-', '_')
-                ->replace(' ', '_')
-                ->toString();
-
-            $values = collect(preg_split('/\s*\|\s*|,/', (string) $value) ?: [])
-                ->map(fn ($item) => trim($item))
-                ->filter()
-                ->values()
-                ->all();
-
-            $attributes[$normalizedKey] = count($values) === 1 ? $values[0] : $values;
-        }
-
-        return $attributes;
-    }
-
-    protected function maybeUnserialize(mixed $value): mixed
-    {
-        if (! is_string($value) || trim($value) === '') {
-            return $value;
-        }
-
-        $unserialized = @unserialize($value, ['allowed_classes' => false]);
-
-        return $unserialized === false && $value !== 'b:0;' ? $value : $unserialized;
-    }
 }

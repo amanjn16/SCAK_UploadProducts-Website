@@ -108,13 +108,13 @@
             <a class="btn-secondary" href="{{ route('catalog') }}">Back to Catalog</a>
         </div>
         <p class="muted" id="bucketMessage"></p>
-        <p class="muted cart-help">In case of any queries call / WhatsApp 9350188297.</p>
+        @include('partials.customer-support-note', ['noteStyle' => 'margin:16px 0 0;'])
     </div>
     <div id="orderSuccessOverlay" class="order-success-overlay">
         <div class="panel order-success-modal">
             <h2 style="margin-top:0;">Order Placed</h2>
             <p style="margin:0;">We will get back to you soon.</p>
-            <p class="muted" style="margin:10px 0 0;">For any queries call us on 9350188297.</p>
+            <p class="muted" style="margin:10px 0 0;">For any queries call us on {{ config('scak.support.phone', '9350188297') }}.</p>
             <p class="muted" id="orderSuccessReference" style="margin:10px 0 0;"></p>
             <div class="order-success-actions">
                 <a class="btn-secondary" href="{{ route('catalog') }}">Back to Catalog</a>

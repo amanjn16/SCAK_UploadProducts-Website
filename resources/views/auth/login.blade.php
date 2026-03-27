@@ -6,25 +6,19 @@
             <span class="pill">OTP-protected access</span>
             <h1>Browse the new SCAK catalog with WhatsApp OTP.</h1>
             <p>Customers verify their phone number, explore the product collection, build a bucket, and send an order request directly to the admin team for offline follow-up.</p>
-            <p class="muted">For any queries call or WhatsApp 9350188297.</p>
+            @include('partials.customer-support-note', ['noteStyle' => 'margin:0;'])
         </div>
         <div class="panel" style="padding: 24px;">
             <div id="stepRequestOtp">
                 <h2 style="margin-top: 0;">Request OTP</h2>
-                <div class="field">
-                    <label>Name</label>
-                    <input id="customerName" placeholder="Enter your name">
-                </div>
-                <div class="field">
-                    <label>Phone</label>
-                    <input id="customerPhone" placeholder="9350188297">
-                </div>
-                <div class="field">
-                    <label>City</label>
-                    <input id="customerCity" placeholder="Hisar">
-                </div>
+                @include('partials.customer-contact-fields', [
+                    'nameId' => 'customerName',
+                    'phoneId' => 'customerPhone',
+                    'cityId' => 'customerCity',
+                    'cityPlaceholder' => config('scak.support.default_city', 'Delhi'),
+                ])
                 <button class="btn-primary" id="requestOtpButton" style="width: 100%; margin-top: 16px;">Send WhatsApp OTP</button>
-                <p class="muted" style="margin-bottom:0;">For any queries call or WhatsApp 9350188297.</p>
+                @include('partials.customer-support-note', ['noteStyle' => 'margin-bottom:0;'])
             </div>
             <div id="stepVerifyOtp" style="display: none;">
                 <h2 style="margin-top: 0;">Verify OTP</h2>
@@ -35,7 +29,7 @@
                 </div>
                 <button class="btn-primary" id="verifyOtpButton" style="width: 100%; margin-top: 16px;">Enter Catalog</button>
                 <button class="btn-secondary" id="backToRequestButton" style="width: 100%; margin-top: 10px;">Change details</button>
-                <p class="muted" style="margin-bottom:0;">For any queries call or WhatsApp 9350188297.</p>
+                @include('partials.customer-support-note', ['noteStyle' => 'margin-bottom:0;'])
             </div>
             <p class="muted" id="authMessage" style="margin-bottom: 0;"></p>
         </div>

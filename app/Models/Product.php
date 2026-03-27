@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
@@ -85,6 +86,16 @@ class Product extends Model
         return $this->hasMany(ProductImage::class)->orderBy('sort_order')->orderByDesc('is_cover');
     }
 
+    public function coverImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->where('is_cover', true)->orderBy('sort_order');
+    }
+
+    public function firstImage(): HasOne
+    {
+        return $this->hasOne(ProductImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
     public function sizes(): BelongsToMany
     {
         return $this->belongsToMany(Size::class);
@@ -102,9 +113,21 @@ class Product extends Model
 
     public function getCoverImageUrlAttribute(): ?string
     {
-        $image = $this->relationLoaded('images')
-            ? $this->images->sortBy('sort_order')->firstWhere('is_cover', true) ?? $this->images->sortBy('sort_order')->first()
-            : $this->images()->where('is_cover', true)->first() ?? $this->images()->orderBy('sort_order')->first();
+        $image = null;
+
+        if ($this->relationLoaded('coverImage')) {
+            $image = $this->getRelation('coverImage');
+        }
+
+        if (! $image && $this->relationLoaded('firstImage')) {
+            $image = $this->getRelation('firstImage');
+        }
+
+        if (! $image && $this->relationLoaded('images')) {
+            $image = $this->images->firstWhere('is_cover', true) ?? $this->images->sortBy('sort_order')->first();
+        }
+
+        $image ??= $this->coverImage()->first() ?? $this->firstImage()->first();
 
         return $image?->url;
     }

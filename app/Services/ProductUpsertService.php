@@ -248,63 +248,208 @@ class ProductUpsertService
     protected function storeProductImage(Product $product, UploadedFile $uploadedImage, bool $alreadyWatermarked = false): string
     {
         $raw = $uploadedImage->get();
+        $extension = $uploadedImage->getClientOriginalExtension() ?: $uploadedImage->extension() ?: 'jpg';
 
         return $this->storeProductImageBinary(
-            product: $product,
-            raw: $alreadyWatermarked ? $raw : $this->renderBinaryWithSkuWatermark($raw, $product->sku),
+            $product,
+            $this->optimizeImageBinary($raw, $product->sku, ! $alreadyWatermarked, $extension),
         );
     }
 
     public function storeLegacyProductImage(Product $product, string $raw, ?string $originalName = null): string
     {
         $extension = pathinfo((string) $originalName, PATHINFO_EXTENSION) ?: 'jpg';
-        $normalizedExtension = Str::lower($extension);
-        $binary = $this->renderBinaryWithSkuWatermark($raw, $product->sku);
 
-        return $this->storeProductImageBinary($product, $binary, $normalizedExtension);
+        return $this->storeProductImageBinary(
+            $product,
+            $this->optimizeImageBinary($raw, $product->sku, true, $extension),
+        );
     }
 
-    protected function storeProductImageBinary(Product $product, string $raw, string $extension = 'jpg'): string
+    public function optimizeStoredImage(ProductImage $image): array
+    {
+        $disk = Storage::disk($image->disk);
+
+        if (! $disk->exists($image->path)) {
+            return ['optimized' => false, 'missing' => true, 'bytes_saved' => 0];
+        }
+
+        $originalPath = $image->path;
+        $originalBinary = $disk->get($originalPath);
+        $beforeBytes = strlen($originalBinary);
+        $optimized = $this->optimizeImageBinary(
+            $originalBinary,
+            $image->product?->sku,
+            false,
+            pathinfo($originalPath, PATHINFO_EXTENSION) ?: 'jpg',
+        );
+        $afterBytes = strlen($optimized['binary']);
+        $targetPath = $this->pathWithExtension($originalPath, $optimized['extension']);
+
+        $disk->put($targetPath, $optimized['binary']);
+
+        if ($targetPath !== $originalPath && $disk->exists($originalPath)) {
+            $disk->delete($originalPath);
+        }
+
+        $image->forceFill(['path' => $targetPath])->save();
+
+        return [
+            'optimized' => $targetPath !== $originalPath || $afterBytes !== $beforeBytes,
+            'missing' => false,
+            'bytes_saved' => max(0, $beforeBytes - $afterBytes),
+            'before_bytes' => $beforeBytes,
+            'after_bytes' => $afterBytes,
+            'path_changed' => $targetPath !== $originalPath,
+        ];
+    }
+
+    protected function storeProductImageBinary(Product $product, array $optimized): string
     {
         $disk = config('scak.storage.disk', 'products');
-        $extension = Str::of($extension)->lower()->replaceMatches('/[^a-z0-9]/', '')->value() ?: 'jpg';
+        $extension = $this->normalizeImageExtension($optimized['extension'] ?? 'jpg');
         $fileName = Str::uuid().'.'.$extension;
         $path = $product->slug.'/'.$fileName;
-        Storage::disk($disk)->put($path, $raw);
+        Storage::disk($disk)->put($path, $optimized['binary']);
 
         return $path;
     }
 
-    protected function renderBinaryWithSkuWatermark(string $raw, ?string $sku): string
+    protected function optimizeImageBinary(string $raw, ?string $sku, bool $applyWatermark, ?string $extension = null): array
     {
-        if (blank($sku) || ! function_exists('imagecreatefromstring')) {
-            return $raw;
+        $normalizedExtension = $this->normalizeImageExtension($extension);
+
+        if (! function_exists('imagecreatefromstring')) {
+            return [
+                'binary' => $raw,
+                'extension' => $normalizedExtension,
+            ];
         }
 
-        $image = @imagecreatefromstring($raw);
+        $sourceImage = @imagecreatefromstring($raw);
 
-        if (! $image) {
-            return $raw;
+        if (! $sourceImage) {
+            return [
+                'binary' => $raw,
+                'extension' => $normalizedExtension,
+            ];
         }
 
+        $image = $this->resizeImageResource($sourceImage, (int) config('scak.images.max_dimension', 1600));
+
+        if ($image !== $sourceImage) {
+            imagedestroy($sourceImage);
+        }
+
+        if ($applyWatermark && filled($sku)) {
+            $this->applySkuWatermark($image, $sku);
+        }
+
+        $preferWebp = (bool) config('scak.images.prefer_webp', true) && function_exists('imagewebp');
+        $output = $preferWebp
+            ? $this->encodeWebp($image)
+            : $this->encodeJpeg($image);
+
+        imagedestroy($image);
+
+        return $output ?? [
+            'binary' => $raw,
+            'extension' => $normalizedExtension,
+        ];
+    }
+
+    protected function resizeImageResource($sourceImage, int $maxDimension)
+    {
+        $width = imagesx($sourceImage);
+        $height = imagesy($sourceImage);
+
+        if ($width <= $maxDimension && $height <= $maxDimension) {
+            return $sourceImage;
+        }
+
+        $ratio = min($maxDimension / $width, $maxDimension / $height);
+        $targetWidth = max(1, (int) round($width * $ratio));
+        $targetHeight = max(1, (int) round($height * $ratio));
+        $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
+
+        imagealphablending($canvas, false);
+        imagesavealpha($canvas, true);
+
+        $transparent = imagecolorallocatealpha($canvas, 0, 0, 0, 127);
+        imagefill($canvas, 0, 0, $transparent);
+        imagecopyresampled($canvas, $sourceImage, 0, 0, 0, 0, $targetWidth, $targetHeight, $width, $height);
+
+        return $canvas;
+    }
+
+    protected function applySkuWatermark($image, string $sku): void
+    {
         $width = imagesx($image);
         $height = imagesy($image);
-        $font = 3;
-        $margin = max(10, (int) round(min($width, $height) * 0.02));
+        $font = min(5, max(3, (int) floor(min($width, $height) / 350)));
+        $margin = max(12, (int) round(min($width, $height) * 0.03));
         $textHeight = imagefontheight($font);
         $y = max(0, $height - $textHeight - $margin);
         $shadowColor = imagecolorallocatealpha($image, 0, 0, 0, 70);
         $textColor = imagecolorallocatealpha($image, 255, 255, 255, 20);
 
-        imagestring($image, $font, $margin + 1, $y + 1, $sku, $shadowColor);
+        imagestring($image, $font, $margin + 2, $y + 2, $sku, $shadowColor);
         imagestring($image, $font, $margin, $y, $sku, $textColor);
+    }
 
+    protected function encodeWebp($image): ?array
+    {
         ob_start();
-        imagejpeg($image, null, 88);
-        $binary = ob_get_clean() ?: $raw;
+        $encoded = imagewebp($image, null, (int) config('scak.images.webp_quality', 80));
+        $binary = ob_get_clean();
 
-        imagedestroy($image);
+        if (! $encoded || $binary === false) {
+            return null;
+        }
 
-        return $binary;
+        return [
+            'binary' => $binary,
+            'extension' => 'webp',
+        ];
+    }
+
+    protected function encodeJpeg($image): ?array
+    {
+        ob_start();
+        $encoded = imagejpeg($image, null, (int) config('scak.images.jpeg_quality', 82));
+        $binary = ob_get_clean();
+
+        if (! $encoded || $binary === false) {
+            return null;
+        }
+
+        return [
+            'binary' => $binary,
+            'extension' => 'jpg',
+        ];
+    }
+
+    protected function normalizeImageExtension(?string $extension): string
+    {
+        $normalized = Str::of((string) $extension)
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]/', '')
+            ->value();
+
+        return match ($normalized) {
+            'jpeg', 'jpg' => 'jpg',
+            'png' => 'png',
+            'webp' => 'webp',
+            default => 'jpg',
+        };
+    }
+
+    protected function pathWithExtension(string $path, string $extension): string
+    {
+        $pathInfo = pathinfo($path);
+        $directory = $pathInfo['dirname'] ?? '.';
+        $filename = $pathInfo['filename'] ?? Str::uuid()->toString();
+
+        return trim(($directory === '.' ? '' : $directory.'/').$filename.'.'.$extension, '/');
     }
 }

@@ -11,6 +11,7 @@ use App\Models\ProductImage;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\VisitorSession;
+use App\Services\ProductUpsertService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -134,8 +135,8 @@ class ExampleTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('data.0.name', 'Festive Suit')
-            ->assertJsonPath('data.0.supplier', 'SCAK Supplier')
-            ->assertJsonPath('data.0.city', 'Hisar');
+            ->assertJsonPath('data.0.price', 1999)
+            ->assertJsonMissingPath('data.0.supplier');
     }
 
     public function test_admin_can_hard_delete_product_and_images(): void
@@ -520,6 +521,41 @@ class ExampleTest extends TestCase
         $this->assertSame(User::ROLE_SUPER_ADMIN, $superAdmin->fresh()->role);
 
         @unlink($wordpressDb);
+    }
+
+    public function test_product_image_optimizer_command_rewrites_existing_images(): void
+    {
+        Storage::fake('products');
+
+        $product = Product::query()->create([
+            'name' => 'Optimized Suit',
+            'slug' => 'optimized-suit',
+            'sku' => 'S5678',
+            'price' => 1499,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        /** @var ProductUpsertService $service */
+        $service = app(ProductUpsertService::class);
+        $jpeg = base64_decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxAQEBUQEA8QDw8PDw8PDw8QDw8PDw8PFREWFhURFRUYHSggGBolGxUVITEhJSkrLi4uFx8zODMsNygtLisBCgoKDg0OGhAQGi0fHyUtLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKABJQMBIgACEQEDEQH/xAAbAAABBQEBAAAAAAAAAAAAAAADAAIEBQYBB//EAD8QAAEDAgQDBQYEBQQDAQAAAAEAAhEDIQQSMUEFUWEGEyJxgZEykaGxFCNCUrHB0fAVM2KC4fEkQ2PS/8QAGAEBAQEBAQAAAAAAAAAAAAAAAAECAwT/xAAgEQEBAAICAwEBAQAAAAAAAAAAAQIRAyExEkETIlEU/9oADAMBAAIRAxEAPwD8bREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAERED//2Q==') ?: 'image';
+        $path = 'optimized-suit/source.jpg';
+        Storage::disk('products')->put($path, $jpeg);
+
+        $image = ProductImage::query()->create([
+            'product_id' => $product->id,
+            'disk' => 'products',
+            'path' => $path,
+            'original_name' => 'source.jpg',
+            'sort_order' => 1,
+            'is_cover' => true,
+        ]);
+
+        $result = $service->optimizeStoredImage($image->fresh('product'));
+
+        $this->assertFalse($result['missing']);
+        Storage::disk('products')->assertExists($image->fresh()->path);
     }
 
     protected function setUpWordPressConnection(): array

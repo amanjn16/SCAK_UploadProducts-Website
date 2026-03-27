@@ -24,7 +24,25 @@ class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         $products = Product::query()
-            ->with(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images'])
+            ->select([
+                'id',
+                'name',
+                'slug',
+                'sku',
+                'price',
+                'status',
+                'is_active',
+                'is_legacy_import',
+                'legacy_wordpress_sku',
+                'created_at',
+                'published_at',
+                'legacy_published_at',
+                'legacy_modified_at',
+            ])
+            ->with([
+                'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+            ])
             ->when(! $request->boolean('include_archived', true), fn ($query) => $query->where('is_active', true))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
             ->when($request->filled('min_price'), fn ($query) => $query->where('price', '>=', $request->float('min_price')))
@@ -55,7 +73,12 @@ class ProductController extends Controller
     public function store(UpsertProductRequest $request): JsonResponse
     {
         $product = $this->productUpsertService->upsert($request->validated(), null)
-            ->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images']);
+            ->load([
+                'tags:id,name,slug',
+                'images:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+            ]);
 
         $this->auditLogService->record('product.created', $request->user(), $product, [
             'name' => $product->name,
@@ -72,7 +95,13 @@ class ProductController extends Controller
     {
         return response()->json([
             'data' => $this->transformProduct(
-                $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images'])
+                $product->load([
+                    'tags:id,name,slug',
+                    'images:id,product_id,disk,path,original_name,sort_order,is_cover',
+                    'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                    'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                ]),
+                true
             ),
         ]);
     }
@@ -80,7 +109,12 @@ class ProductController extends Controller
     public function update(UpsertProductRequest $request, Product $product): JsonResponse
     {
         $product = $this->productUpsertService->upsert($request->validated(), $product)
-            ->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images']);
+            ->load([
+                'tags:id,name,slug',
+                'images:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+            ]);
 
         $this->auditLogService->record('product.updated', $request->user(), $product, [
             'name' => $product->name,
@@ -132,7 +166,25 @@ class ProductController extends Controller
         return response()->json([
             'message' => 'Product statuses updated successfully.',
             'data' => Product::query()
-                ->with(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images'])
+                ->select([
+                    'id',
+                    'name',
+                    'slug',
+                    'sku',
+                    'price',
+                    'status',
+                    'is_active',
+                    'is_legacy_import',
+                    'legacy_wordpress_sku',
+                    'created_at',
+                    'published_at',
+                    'legacy_published_at',
+                    'legacy_modified_at',
+                ])
+                ->with([
+                    'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                    'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                ])
                 ->whereIn('id', $products->pluck('id'))
                 ->get()
                 ->map(fn (Product $product) => $this->transformProduct($product))
@@ -174,39 +226,39 @@ class ProductController extends Controller
         return response()->json(['message' => 'Products deleted successfully.']);
     }
 
-    protected function transformProduct(Product $product): array
+    protected function transformProduct(Product $product, bool $detailed = false): array
     {
-        return [
+        $payload = [
             'id' => $product->id,
             'name' => $product->name,
             'slug' => $product->slug,
             'sku' => $product->sku,
             'legacy_sku' => $product->legacy_wordpress_sku,
             'price' => (float) $product->price,
-            'description' => $product->description,
             'cover_image_url' => $product->cover_image_url,
-            'supplier' => $product->supplier?->name,
-            'city' => $product->city?->name,
-            'category' => $product->category?->name,
-            'top_fabric' => $product->topFabric?->name,
-            'dupatta_fabric' => $product->dupattaFabric?->name,
             'status' => $product->status,
             'is_active' => $product->is_active,
             'is_legacy_import' => $product->is_legacy_import,
-            'sizes' => $product->sizes->pluck('name')->values(),
-            'features' => $product->features->pluck('name')->values(),
-            'tags' => $product->tags->pluck('name')->values(),
             'created_at' => optional($product->created_at)?->toIso8601String(),
             'published_at' => optional($product->published_at)?->toIso8601String(),
             'legacy_published_at' => optional($product->legacy_published_at)?->toIso8601String(),
             'legacy_modified_at' => optional($product->legacy_modified_at)?->toIso8601String(),
-            'images' => $product->images->map(fn ($image) => [
-                'id' => $image->id,
-                'url' => $image->url,
-                'is_cover' => $image->is_cover,
-                'sort_order' => $image->sort_order,
-            ])->values(),
         ];
+
+        if (! $detailed) {
+            return $payload;
+        }
+
+        $payload['description'] = $product->description;
+        $payload['tags'] = $product->tags->pluck('name')->values();
+        $payload['images'] = $product->images->map(fn ($image) => [
+            'id' => $image->id,
+            'url' => $image->url,
+            'is_cover' => $image->is_cover,
+            'sort_order' => $image->sort_order,
+        ])->values();
+
+        return $payload;
     }
 
     protected function selectedTagSlugs(Request $request): array
