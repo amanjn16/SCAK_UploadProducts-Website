@@ -37,12 +37,15 @@ class CustomerAuthController extends Controller
             $request->string('code')->toString(),
         );
 
+        $phone = PhoneNumber::normalizeIndian($request->string('phone')->toString());
+        $existingUser = User::query()->where('phone', $phone)->first();
+
         $user = User::query()->updateOrCreate(
-            ['phone' => PhoneNumber::normalizeIndian($request->string('phone')->toString())],
+            ['phone' => $phone],
             [
                 'name' => data_get($challenge->meta, 'name', 'SCAK Customer'),
                 'city' => data_get($challenge->meta, 'city'),
-                'role' => User::ROLE_CUSTOMER,
+                'role' => $existingUser?->role ?: User::ROLE_CUSTOMER,
                 'phone_verified_at' => now(),
                 'last_login_at' => now(),
                 'is_active' => true,
