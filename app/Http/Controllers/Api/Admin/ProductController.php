@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\BulkCreateProductsRequest;
+use App\Http\Requests\BulkDeleteProductsRequest;
 use App\Http\Requests\BulkUpdateProductStatusRequest;
 use App\Http\Requests\UpsertProductRequest;
 use App\Models\Product;
@@ -58,6 +59,15 @@ class ProductController extends Controller
             'message' => 'Product created successfully.',
             'data' => $this->transformProduct($product),
         ], 201);
+    }
+
+    public function show(Product $product): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->transformProduct(
+                $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images'])
+            ),
+        ]);
     }
 
     public function update(UpsertProductRequest $request, Product $product): JsonResponse
@@ -121,6 +131,40 @@ class ProductController extends Controller
                 ->map(fn (Product $product) => $this->transformProduct($product))
                 ->values(),
         ]);
+    }
+
+    public function destroy(Request $request, Product $product): JsonResponse
+    {
+        $meta = [
+            'product_id' => $product->id,
+            'name' => $product->name,
+            'sku' => $product->sku,
+        ];
+
+        $this->productUpsertService->delete($product);
+
+        $this->auditLogService->record('product.deleted', $request->user(), null, $meta, $request);
+
+        return response()->json(['message' => 'Product deleted successfully.']);
+    }
+
+    public function bulkDestroy(BulkDeleteProductsRequest $request): JsonResponse
+    {
+        $products = Product::query()
+            ->whereIn('id', $request->validated('product_ids'))
+            ->get();
+
+        foreach ($products as $product) {
+            $this->productUpsertService->delete($product);
+        }
+
+        $this->auditLogService->record('product.bulk_deleted', $request->user(), null, [
+            'count' => $products->count(),
+            'product_ids' => $products->pluck('id')->values(),
+            'skus' => $products->pluck('sku')->filter()->values(),
+        ], $request);
+
+        return response()->json(['message' => 'Products deleted successfully.']);
     }
 
     protected function transformProduct(Product $product): array

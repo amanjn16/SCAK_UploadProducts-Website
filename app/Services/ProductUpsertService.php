@@ -13,6 +13,7 @@ use App\Models\Supplier;
 use App\Models\Tag;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductUpsertService
@@ -95,8 +96,7 @@ class ProductUpsertService
         $baseOrder = (int) $product->images()->max('sort_order');
 
         foreach ($uploadedImages as $index => $uploadedImage) {
-            $fileName = Str::uuid().'.'.$uploadedImage->getClientOriginalExtension();
-            $path = $uploadedImage->storeAs($product->slug, $fileName, $disk);
+            $path = $this->storeProductImage($product, $uploadedImage);
 
             ProductImage::query()->create([
                 'product_id' => $product->id,
@@ -117,6 +117,22 @@ class ProductUpsertService
         }
 
         return $product->load('images');
+    }
+
+    public function delete(Product $product): void
+    {
+        $product->loadMissing('images', 'tags', 'sizes', 'features');
+
+        foreach ($product->images as $image) {
+            if (Storage::disk($image->disk)->exists($image->path)) {
+                Storage::disk($image->disk)->delete($image->path);
+            }
+        }
+
+        $product->tags()->detach();
+        $product->sizes()->detach();
+        $product->features()->detach();
+        $product->forceDelete();
     }
 
     public function reorderImages(Product $product, Collection $imageOrder, ?int $coverImageId = null): void
@@ -175,7 +191,19 @@ class ProductUpsertService
 
     protected function generateUniqueSku(string $name): string
     {
-        return $this->ensureUniqueSku('SCAK-'.Str::upper(Str::substr(Str::slug($name, ''), 0, 6)).random_int(1000, 9999));
+        $digits = 4;
+
+        while (true) {
+            $min = (10 ** ($digits - 1));
+            $max = (10 ** $digits) - 1;
+            $candidate = 'S'.random_int($min, $max);
+
+            if (! Product::query()->where('sku', $candidate)->exists()) {
+                return $candidate;
+            }
+
+            $digits++;
+        }
     }
 
     protected function ensureUniqueSku(string $sku, ?int $ignoreProductId = null): string
@@ -194,5 +222,52 @@ class ProductUpsertService
         }
 
         return $candidate;
+    }
+
+    protected function storeProductImage(Product $product, UploadedFile $uploadedImage): string
+    {
+        $disk = config('scak.storage.disk', 'products');
+        $fileName = Str::uuid().'.jpg';
+        $path = $product->slug.'/'.$fileName;
+        $binary = $this->renderImageWithSkuWatermark($uploadedImage, $product->sku);
+
+        Storage::disk($disk)->put($path, $binary);
+
+        return $path;
+    }
+
+    protected function renderImageWithSkuWatermark(UploadedFile $uploadedImage, ?string $sku): string
+    {
+        $raw = $uploadedImage->get();
+
+        if (blank($sku) || ! function_exists('imagecreatefromstring')) {
+            return $raw;
+        }
+
+        $image = @imagecreatefromstring($raw);
+
+        if (! $image) {
+            return $raw;
+        }
+
+        $width = imagesx($image);
+        $height = imagesy($image);
+        $font = 1;
+        $margin = max(6, (int) round(min($width, $height) * 0.012));
+        $textHeight = imagefontheight($font);
+        $y = max(0, $height - $textHeight - $margin);
+        $shadowColor = imagecolorallocatealpha($image, 0, 0, 0, 70);
+        $textColor = imagecolorallocatealpha($image, 255, 255, 255, 20);
+
+        imagestring($image, $font, $margin + 1, $y + 1, $sku, $shadowColor);
+        imagestring($image, $font, $margin, $y, $sku, $textColor);
+
+        ob_start();
+        imagejpeg($image, null, 88);
+        $binary = ob_get_clean() ?: $raw;
+
+        imagedestroy($image);
+
+        return $binary;
     }
 }

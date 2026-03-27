@@ -6,9 +6,11 @@ use App\Models\Category;
 use App\Models\City;
 use App\Models\OtpChallenge;
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -130,5 +132,56 @@ class ExampleTest extends TestCase
             ->assertJsonPath('data.0.name', 'Festive Suit')
             ->assertJsonPath('data.0.supplier', 'SCAK Supplier')
             ->assertJsonPath('data.0.city', 'Hisar');
+    }
+
+    public function test_admin_can_hard_delete_product_and_images(): void
+    {
+        Storage::fake('products');
+
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'phone' => '+919999999999',
+            'role' => User::ROLE_ADMIN,
+            'phone_verified_at' => now(),
+            'approved_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $supplier = Supplier::query()->create(['name' => 'SCAK Supplier', 'slug' => 'scak-supplier']);
+        $city = City::query()->create(['name' => 'Hisar', 'slug' => 'hisar']);
+        $category = Category::query()->create(['name' => 'Suits', 'slug' => 'suits']);
+
+        $product = Product::query()->create([
+            'name' => 'Delete Me',
+            'slug' => 'delete-me',
+            'sku' => 'S1234',
+            'price' => 1500,
+            'supplier_id' => $supplier->id,
+            'city_id' => $city->id,
+            'category_id' => $category->id,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        Storage::disk('products')->put('delete-me/test.jpg', 'image');
+
+        ProductImage::query()->create([
+            'product_id' => $product->id,
+            'disk' => 'products',
+            'path' => 'delete-me/test.jpg',
+            'original_name' => 'test.jpg',
+            'sort_order' => 1,
+            'is_cover' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->deleteJson("/admin/products/{$product->id}");
+
+        $response->assertOk();
+        $this->assertDatabaseMissing('products', ['id' => $product->id]);
+        $this->assertDatabaseMissing('product_images', ['product_id' => $product->id]);
+        Storage::disk('products')->assertMissing('delete-me/test.jpg');
     }
 }

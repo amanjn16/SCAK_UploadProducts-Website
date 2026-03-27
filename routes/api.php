@@ -18,13 +18,16 @@ Route::post('/auth/admin/verify-otp', [AdminAuthController::class, 'verifyOtp'])
 
 Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(function (): void {
     Route::get('/products', [AdminProductController::class, 'index']);
+    Route::get('/products/{product:id}', [AdminProductController::class, 'show']);
     Route::get('/order-requests', [AdminOrderRequestController::class, 'index']);
     Route::patch('/order-requests/{orderRequest}', [AdminOrderRequestController::class, 'update']);
 
     Route::post('/products', [AdminProductController::class, 'store']);
     Route::post('/products/bulk-create', [AdminProductController::class, 'bulkStore']);
+    Route::post('/products/bulk-delete', [AdminProductController::class, 'bulkDestroy']);
     Route::patch('/products/bulk-status', [AdminProductController::class, 'bulkStatus']);
     Route::patch('/products/{product:id}', [AdminProductController::class, 'update']);
+    Route::delete('/products/{product:id}', [AdminProductController::class, 'destroy']);
     Route::post('/products/{product:id}/images', [ProductImageController::class, 'store']);
     Route::post('/products/{product:id}/share-pdf', [ProductPdfController::class, 'store']);
     Route::post('/products/share-pdf', [ProductPdfController::class, 'batchStore']);
