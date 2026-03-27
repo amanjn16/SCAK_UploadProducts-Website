@@ -25,7 +25,7 @@
     </style>
     <section class="product-detail-layout">
         <div class="panel product-detail-main" style="padding: 24px;">
-            <a class="btn-secondary back-link" href="{{ url()->previous() !== request()->fullUrl() ? url()->previous() : route('catalog') }}">&#8592; Go Back</a>
+            <button class="btn-secondary back-link" type="button" onclick="window.scakCatalogState.goBack('{{ route('catalog') }}')">&#8592; Go Back</button>
             <img src="{{ $product->cover_image_url ?? 'https://placehold.co/900x1125?text=SCAK' }}" alt="{{ $product->name }}" style="width: 100%; border-radius: 24px; aspect-ratio: 4 / 5; object-fit: cover;">
             @if($product->images->count() > 1)
                 <div class="product-grid product-detail-gallery">
@@ -49,7 +49,7 @@
                 @endforelse
             </div>
             @if($product->is_active)
-                <button class="btn-primary" style="width: 100%; margin-top: 18px;" onclick="window.scakCart.add({{ $product->id }}); window.location.href='{{ route('bucket') }}';">Add to Cart</button>
+                <button class="btn-primary" style="width: 100%; margin-top: 18px;" onclick="window.scakCart.add({{ $product->id }}); window.scakCatalogState.save(window.scakCatalogState.read() || { page: 1, scrollY: 0 }); window.location.href='{{ route('bucket') }}';">Add to Cart</button>
             @else
                 <button class="btn-secondary" style="width: 100%; margin-top: 18px;" disabled>Archived items are view only</button>
             @endif

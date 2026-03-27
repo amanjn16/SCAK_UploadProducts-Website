@@ -2,7 +2,7 @@
 
 @section('content')
     <div class="panel" style="padding: 24px;">
-        <a class="btn-secondary back-link" href="{{ url()->previous() !== request()->fullUrl() ? url()->previous() : route('catalog') }}">&#8592; Go Back</a>
+        <button class="btn-secondary back-link" type="button" onclick="window.scakCatalogState.goBack('{{ route('catalog') }}')">&#8592; Go Back</button>
         <h1 style="margin-top: 0;">Your Cart</h1>
         <p class="muted">Review the products you want, add an optional note, and place your order. The SCAK admin team will contact you to confirm payment and dispatch offline.</p>
         <style>
@@ -106,7 +106,7 @@
         </div>
         <div class="cart-actions">
             <button class="btn-primary" id="submitBucketButton">Place Order</button>
-            <a class="btn-secondary" href="{{ route('catalog') }}">Back to Catalog</a>
+            <button class="btn-secondary" type="button" onclick="window.scakCatalogState.goBack('{{ route('catalog') }}')">Back to Catalog</button>
         </div>
         <p class="muted" id="bucketMessage"></p>
         @include('partials.customer-support-note', ['noteStyle' => 'margin:16px 0 0;'])
@@ -118,7 +118,7 @@
             <p class="muted" style="margin:10px 0 0;">For any queries call us on {{ config('scak.support.phone', '9350188297') }}.</p>
             <p class="muted" id="orderSuccessReference" style="margin:10px 0 0;"></p>
             <div class="order-success-actions">
-                <a class="btn-secondary" href="{{ route('catalog') }}">Back to Catalog</a>
+                <button class="btn-secondary" type="button" onclick="window.scakCatalogState.goBack('{{ route('catalog') }}')">Back to Catalog</button>
                 <button class="btn-primary" id="closeOrderSuccessButton" type="button">Close</button>
             </div>
         </div>

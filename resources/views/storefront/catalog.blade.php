@@ -75,6 +75,21 @@
     let catalogLoading = false;
     let catalogObserver;
     let selectedTagSlugs = [];
+    let restoringCatalogState = false;
+
+    function saveCatalogState() {
+        window.scakCatalogState?.save({
+            page: catalogCurrentPage,
+            scrollY: window.scrollY,
+            savedAt: Date.now(),
+            search: document.getElementById('searchFilter').value,
+            sort: document.getElementById('sortFilter').value,
+            minPrice: document.getElementById('minPriceFilter').value,
+            maxPrice: document.getElementById('maxPriceFilter').value,
+            showArchive: document.getElementById('showArchiveFilter').checked,
+            tags: selectedTagSlugs,
+        });
+    }
     function updateCartChip() {
         document.querySelector('#cartChip span').textContent = String(window.scakCart.count());
     }
@@ -86,7 +101,7 @@
 
         return `
             <article class="product-card">
-                <a href="/catalog/${product.slug}">
+                <a href="/catalog/${product.slug}" onclick="saveCatalogState()">
                     <img src="${product.cover_image_url || 'https://placehold.co/600x750?text=SCAK'}" alt="${product.name}">
                 </a>
                 <div class="product-card-body">
@@ -220,6 +235,7 @@
 
         catalogLoading = false;
         syncCatalogView();
+        saveCatalogState();
 
         if (reset) {
             closeDrawer();
@@ -243,7 +259,7 @@
 
         catalogObserver = new IntersectionObserver(entries => {
             entries.forEach(entry => {
-                if (entry.isIntersecting) {
+                if (entry.isIntersecting && !restoringCatalogState) {
                     loadMoreProducts();
                 }
             });
@@ -281,10 +297,56 @@
     document.getElementById('tagFilterList').addEventListener('change', () => {
         selectedTagSlugs = Array.from(document.querySelectorAll('#tagFilterList input[type="checkbox"]:checked'))
             .map(input => input.value);
+        saveCatalogState();
     });
+    document.getElementById('cartChip').addEventListener('click', saveCatalogState);
+    window.addEventListener('scroll', () => {
+        if (!catalogLoading && !restoringCatalogState) {
+            saveCatalogState();
+        }
+    }, { passive: true });
+
+    async function restoreCatalogStateIfNeeded() {
+        const state = window.scakCatalogState?.read();
+
+        if (!state) {
+            await loadProducts(true);
+            return;
+        }
+
+        if (!state.savedAt || (Date.now() - Number(state.savedAt)) > (30 * 60 * 1000)) {
+            window.scakCatalogState?.clear();
+            await loadProducts(true);
+            return;
+        }
+
+        restoringCatalogState = true;
+        document.getElementById('searchFilter').value = state.search || '';
+        document.getElementById('sortFilter').value = state.sort || '';
+        document.getElementById('minPriceFilter').value = state.minPrice || '';
+        document.getElementById('maxPriceFilter').value = state.maxPrice || '';
+        document.getElementById('showArchiveFilter').checked = !!state.showArchive;
+        selectedTagSlugs = Array.isArray(state.tags) ? state.tags : [];
+
+        document.querySelectorAll('#tagFilterList input[type="checkbox"]').forEach(input => {
+            input.checked = selectedTagSlugs.includes(input.value);
+        });
+
+        await loadProducts(true);
+
+        const targetPage = Number(state.page || 1);
+        while (catalogCurrentPage < targetPage && catalogCurrentPage < catalogLastPage) {
+            await loadMoreProducts();
+        }
+
+        window.requestAnimationFrame(() => {
+            window.scrollTo({ top: Number(state.scrollY || 0), behavior: 'auto' });
+            restoringCatalogState = false;
+        });
+    }
 
     updateCartChip();
     setupInfiniteScroll();
-    loadFilters().then(() => loadProducts(true));
+    loadFilters().then(() => restoreCatalogStateIfNeeded());
 </script>
 @endpush

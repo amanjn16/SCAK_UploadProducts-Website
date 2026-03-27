@@ -38,14 +38,14 @@
         .shell {
             max-width: 1180px;
             margin: 0 auto;
-            padding: 96px 24px 24px;
+            padding: 82px 24px 24px;
         }
         .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 16px;
-            padding: 14px 18px;
+            gap: 12px;
+            padding: 10px 14px;
             background: rgba(255,255,255,0.82);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(31,42,55,0.08);
@@ -54,8 +54,8 @@
             left: 50%;
             width: min(1180px, calc(100vw - 24px));
             transform: translate(-50%, -120%);
-            border-radius: 22px;
-            box-shadow: 0 16px 32px rgba(31, 42, 55, 0.12);
+            border-radius: 18px;
+            box-shadow: 0 12px 24px rgba(31, 42, 55, 0.12);
             z-index: 20;
             transition: transform .22s ease;
         }
@@ -65,32 +65,40 @@
         .brand {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
+            min-width: 0;
         }
         .brand img {
-            width: 52px;
-            height: 52px;
+            width: 42px;
+            height: 42px;
             object-fit: contain;
             flex: 0 0 auto;
         }
         .brand-copy {
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            gap: 0;
+            min-width: 0;
         }
-        .brand strong {
+        .brand-name {
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            font-size: 0.86rem;
+            font-size: 0.8rem;
+            line-height: 1;
         }
-        .brand span {
+        .brand-tagline {
             color: #6d5842;
-            font-size: 0.82rem;
+            font-size: 0.74rem;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .nav {
             display: flex;
-            gap: 12px;
+            gap: 8px;
             align-items: center;
+            flex: 0 0 auto;
         }
         .btn, button {
             border: none;
@@ -109,6 +117,18 @@
             background: white;
             border: 1px solid var(--line);
             color: var(--ink);
+        }
+        .icon-btn {
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .icon-btn svg {
+            width: 18px;
+            height: 18px;
         }
         .panel {
             background: rgba(255,255,255,0.85);
@@ -275,7 +295,7 @@
             border-bottom: 1px solid var(--line);
         }
         .drawer-body {
-            padding: 20px 22px 28px;
+            padding: 20px 22px calc(118px + env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
             display: grid;
             gap: 18px;
@@ -334,26 +354,29 @@
         @media (max-width: 900px) {
             .hero { grid-template-columns: 1fr; }
             .topbar {
-                flex-direction: column;
-                align-items: stretch;
                 top: 0;
                 width: calc(100vw - 16px);
                 border-radius: 0 0 22px 22px;
+                gap: 8px;
+                padding: 10px 12px;
             }
             .nav {
-                justify-content: space-between;
-                flex-wrap: wrap;
+                margin-left: auto;
             }
-            .brand {
-                align-items: flex-start;
+            .brand img {
+                width: 36px;
+                height: 36px;
             }
             .shell {
-                padding-top: 152px;
+                padding-top: 72px;
+            }
+            .brand-tagline {
+                display: none;
             }
         }
         @media (max-width: 640px) {
             .shell {
-                padding: 164px 16px 16px;
+                padding: 78px 16px 16px;
             }
             .product-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -365,6 +388,10 @@
             }
             .product-card-title {
                 font-size: 0.78rem;
+            }
+            .topbar {
+                width: calc(100vw - 10px);
+                padding: 8px 10px;
             }
             .floating-filter-btn,
             .cart-chip,
@@ -380,16 +407,27 @@
         <a class="brand" href="{{ auth()->check() ? route('catalog') : route('login') }}">
             <img src="{{ asset('assets/brand/scak-logo.png') }}" alt="SCAK">
             <span class="brand-copy">
-                <strong>SCAK</strong>
-                <span>Wholesale catalog and order requests</span>
+                <strong class="brand-name">SCAK</strong>
+                <span class="brand-tagline">Wholesale catalog and order requests</span>
             </span>
         </a>
         <nav class="nav">
             @auth
-                <a href="{{ route('catalog') }}">Catalog</a>
-                <button class="btn-secondary" id="logoutButton" type="button">Logout</button>
+                <button class="btn-secondary icon-btn" id="logoutButton" type="button" aria-label="Logout" title="Logout">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                        <path d="M16 17l5-5-5-5"/>
+                        <path d="M21 12H9"/>
+                    </svg>
+                </button>
             @else
-                <a href="{{ route('login') }}">Login</a>
+                <button class="btn-secondary icon-btn" type="button" aria-label="Verify by OTP" title="Verify by OTP" onclick="window.scakAuthPrompt?.open()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 4h16v16H4z"/>
+                        <path d="M8 10h8"/>
+                        <path d="M8 14h5"/>
+                    </svg>
+                </button>
             @endauth
         </nav>
     </header>
@@ -401,6 +439,29 @@
         window.scak = {
             csrfToken: document.querySelector('meta[name="csrf-token"]').content,
             cartKey: 'scak_cart_v2'
+        };
+        window.scakCatalogState = {
+            key: 'scak_catalog_state_v1',
+            save(state) {
+                try {
+                    sessionStorage.setItem(this.key, JSON.stringify(state));
+                } catch (error) {}
+            },
+            read() {
+                try {
+                    return JSON.parse(sessionStorage.getItem(this.key) || 'null');
+                } catch (error) {
+                    return null;
+                }
+            },
+            clear() {
+                try {
+                    sessionStorage.removeItem(this.key);
+                } catch (error) {}
+            },
+            goBack(fallbackUrl) {
+                window.location.href = fallbackUrl;
+            }
         };
 
         window.scakCart = {
