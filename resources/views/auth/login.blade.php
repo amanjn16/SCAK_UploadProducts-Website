@@ -3,7 +3,7 @@
 @section('content')
     <section class="hero">
         <div class="hero-copy">
-            <img src="{{ asset('assets/brand/scak-logo.png') }}?v=20260327c" alt="SCAK" style="width:110px; height:110px; object-fit:contain; margin-bottom:18px;">
+            <img src="{{ asset('assets/brand/scak-logo.png') }}?v=20260327d" alt="SCAK" style="width:110px; height:110px; object-fit:contain; margin-bottom:18px;">
             <span class="pill">OTP-protected access</span>
             <h1>Browse the new SCAK catalog with WhatsApp OTP.</h1>
             <p>Customers verify their phone number, explore the product collection, build a bucket, and send an order request directly to the admin team for offline follow-up.</p>
