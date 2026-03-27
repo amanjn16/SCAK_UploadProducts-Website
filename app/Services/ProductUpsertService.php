@@ -71,7 +71,7 @@ class ProductUpsertService
 
         $tagIds = collect($payload['tags'] ?? [])
             ->filter()
-            ->map(fn (string $name) => $this->firstOrCreateByName(Tag::class, $name)->id);
+            ->map(fn (string $name) => $this->firstOrCreateTagByName($name)->id);
 
         $product->sizes()->sync($sizeIds);
         $product->features()->sync($featureIds);
@@ -141,6 +141,21 @@ class ProductUpsertService
         return $modelClass::query()->firstOrCreate(
             ['slug' => Str::slug($name)],
             array_merge(['name' => $name], $extra),
+        );
+    }
+
+    protected function firstOrCreateTagByName(string $name): Tag
+    {
+        $normalizedName = Str::of($name)
+            ->trim()
+            ->squish()
+            ->lower()
+            ->title()
+            ->toString();
+
+        return Tag::query()->firstOrCreate(
+            ['slug' => Str::slug($normalizedName)],
+            ['name' => $normalizedName],
         );
     }
 

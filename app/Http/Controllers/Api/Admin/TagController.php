@@ -33,9 +33,11 @@ class TagController extends Controller
 
     public function store(TagUpsertRequest $request): JsonResponse
     {
+        $normalizedName = $this->normalizeTagName($request->string('name')->toString());
+
         $tag = Tag::query()->create([
-            'name' => trim($request->string('name')->toString()),
-            'slug' => Str::slug($request->string('name')->toString()),
+            'name' => $normalizedName,
+            'slug' => Str::slug($normalizedName),
         ]);
 
         $this->auditLogService->record('tag.created', $request->user(), $tag, ['name' => $tag->name], $request);
@@ -53,9 +55,11 @@ class TagController extends Controller
 
     public function update(TagUpsertRequest $request, Tag $tag): JsonResponse
     {
+        $normalizedName = $this->normalizeTagName($request->string('name')->toString());
+
         $tag->update([
-            'name' => trim($request->string('name')->toString()),
-            'slug' => Str::slug($request->string('name')->toString()),
+            'name' => $normalizedName,
+            'slug' => Str::slug($normalizedName),
         ]);
 
         $this->auditLogService->record('tag.updated', $request->user(), $tag, ['name' => $tag->name], $request);
@@ -83,5 +87,15 @@ class TagController extends Controller
         $this->auditLogService->record('tag.deleted', $request->user(), null, $meta, $request);
 
         return response()->json(['message' => 'Tag deleted successfully.']);
+    }
+
+    private function normalizeTagName(string $name): string
+    {
+        return Str::of($name)
+            ->trim()
+            ->squish()
+            ->lower()
+            ->title()
+            ->toString();
     }
 }

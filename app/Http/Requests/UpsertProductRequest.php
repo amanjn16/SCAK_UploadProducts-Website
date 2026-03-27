@@ -16,7 +16,7 @@ class UpsertProductRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'sku' => ['nullable', 'string', 'max:255'],
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => ['required', 'numeric', 'gt:0'],
             'supplier' => ['nullable', 'string', 'max:255'],
             'city' => ['nullable', 'string', 'max:255'],
             'category' => ['nullable', 'string', 'max:255'],
