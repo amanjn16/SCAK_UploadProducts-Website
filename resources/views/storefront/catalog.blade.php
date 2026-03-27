@@ -62,7 +62,7 @@
         <span>0</span>
     </a>
     <a class="btn-primary whatsapp-chip" href="https://wa.me/919350188297?text={{ rawurlencode(config('scak.support.whatsapp_message')) }}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
-            <img src="{{ $brandWhatsappUrl ?? (asset('assets/brand/message.svg') . '?v=20260327d') }}" alt="">
+            <img src="{{ $brandWhatsappUrl ?? (asset('assets/brand/whatsapp.svg') . '?v=20260327e') }}" alt="">
     </a>
 @endsection
 

@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @php
-        $brandAssetVersion = '20260327d';
+        $brandAssetVersion = '20260327e';
         $brandLogoUrl = asset('assets/brand/scak-logo.png') . '?v=' . $brandAssetVersion;
         $brandFilterUrl = asset('assets/brand/filter.png') . '?v=' . $brandAssetVersion;
         $brandCartUrl = asset('assets/brand/cart.png') . '?v=' . $brandAssetVersion;
-        $brandWhatsappUrl = asset('assets/brand/message.svg') . '?v=' . $brandAssetVersion;
+        $brandWhatsappUrl = asset('assets/brand/whatsapp.svg') . '?v=' . $brandAssetVersion;
     @endphp
     <title>{{ $title ?? 'SCAK' }}</title>
     <link rel="icon" type="image/png" href="{{ $brandLogoUrl }}">
