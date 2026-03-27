@@ -1,6 +1,6 @@
 @guest
     <div id="customerOtpOverlay" class="drawer-overlay"></div>
-    <div id="customerOtpModal" class="panel" style="display:block; position:fixed; inset:auto 16px 16px 16px; z-index:30; max-width:460px; margin:0 auto; left:0; right:0; padding:22px;">
+    <div id="customerOtpModal" class="panel" style="display:block; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); z-index:30; width:min(460px, calc(100vw - 24px)); max-height:min(84vh, 720px); overflow-y:auto; padding:22px;">
         <div id="customerOtpRequestStep">
             <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
                 <strong>Verify To Continue</strong>
