@@ -25,6 +25,7 @@
     </style>
     <section class="product-detail-layout">
         <div class="panel product-detail-main" style="padding: 24px;">
+            <a class="btn-secondary back-link" href="{{ url()->previous() !== request()->fullUrl() ? url()->previous() : route('catalog') }}">&#8592; Go Back</a>
             <img src="{{ $product->cover_image_url ?? 'https://placehold.co/900x1125?text=SCAK' }}" alt="{{ $product->name }}" style="width: 100%; border-radius: 24px; aspect-ratio: 4 / 5; object-fit: cover;">
             @if($product->images->count() > 1)
                 <div class="product-grid product-detail-gallery">

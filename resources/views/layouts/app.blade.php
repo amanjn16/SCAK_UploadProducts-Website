@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'SCAK' }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('assets/brand/scak-logo.png') }}">
     <style>
         :root {
             --sand: #f4efe7;
@@ -16,6 +17,10 @@
             --line: #e4d9cb;
         }
         * { box-sizing: border-box; }
+        html, body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
         body {
             margin: 0;
             font-family: Georgia, "Times New Roman", serif;
@@ -58,6 +63,17 @@
             transform: translate(-50%, 0);
         }
         .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand img {
+            width: 52px;
+            height: 52px;
+            object-fit: contain;
+            flex: 0 0 auto;
+        }
+        .brand-copy {
             display: flex;
             flex-direction: column;
             gap: 2px;
@@ -129,6 +145,10 @@
             flex-direction: column;
             gap: 10px;
         }
+        .product-card-title {
+            font-size: 0.84rem;
+            line-height: 1.2;
+        }
         .muted { color: #6d5842; }
         .pill {
             display: inline-flex;
@@ -171,7 +191,7 @@
         .floating-filter-btn {
             position: fixed;
             right: 24px;
-            bottom: 88px;
+            bottom: 160px;
             width: 60px;
             height: 60px;
             padding: 0;
@@ -181,12 +201,18 @@
             border-radius: 50%;
             box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
             z-index: 16;
-            font-size: 1.3rem;
+        }
+        .floating-filter-btn img,
+        .cart-chip img,
+        .whatsapp-chip img {
+            width: 26px;
+            height: 26px;
+            object-fit: contain;
         }
         .cart-chip {
             position: fixed;
             right: 24px;
-            bottom: 24px;
+            bottom: 88px;
             z-index: 15;
             min-width: 60px;
             height: 60px;
@@ -195,6 +221,19 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
+        }
+        .whatsapp-chip {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 15;
+            width: 60px;
+            height: 60px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
         }
         .drawer-overlay {
@@ -268,6 +307,30 @@
             pointer-events: none;
             user-select: none;
         }
+        .otp-modal-shell {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            width: 100vw;
+            min-height: 100dvh;
+            overflow-y: auto;
+            z-index: 30;
+        }
+        .otp-modal-shell.open {
+            display: flex;
+        }
+        .otp-modal-shell .panel {
+            margin: auto;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
         @media (max-width: 900px) {
             .hero { grid-template-columns: 1fr; }
             .topbar {
@@ -280,6 +343,9 @@
             .nav {
                 justify-content: space-between;
                 flex-wrap: wrap;
+            }
+            .brand {
+                align-items: flex-start;
             }
             .shell {
                 padding-top: 152px;
@@ -297,8 +363,12 @@
                 padding: 12px;
                 gap: 8px;
             }
+            .product-card-title {
+                font-size: 0.78rem;
+            }
             .floating-filter-btn,
-            .cart-chip {
+            .cart-chip,
+            .whatsapp-chip {
                 right: 16px;
             }
         }
@@ -308,8 +378,11 @@
 <body class="@guest auth-locked @endguest">
     <header class="topbar">
         <a class="brand" href="{{ auth()->check() ? route('catalog') : route('login') }}">
-            <strong>SCAK</strong>
-            <span>Wholesale catalog and order requests</span>
+            <img src="{{ asset('assets/brand/scak-logo.png') }}" alt="SCAK">
+            <span class="brand-copy">
+                <strong>SCAK</strong>
+                <span>Wholesale catalog and order requests</span>
+            </span>
         </a>
         <nav class="nav">
             @auth

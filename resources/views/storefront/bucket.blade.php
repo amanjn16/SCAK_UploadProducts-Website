@@ -2,6 +2,7 @@
 
 @section('content')
     <div class="panel" style="padding: 24px;">
+        <a class="btn-secondary back-link" href="{{ url()->previous() !== request()->fullUrl() ? url()->previous() : route('catalog') }}">&#8592; Go Back</a>
         <h1 style="margin-top: 0;">Your Cart</h1>
         <p class="muted">Review the products you want, add an optional note, and place your order. The SCAK admin team will contact you to confirm payment and dispatch offline.</p>
         <style>

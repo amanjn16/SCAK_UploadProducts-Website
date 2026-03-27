@@ -37,6 +37,7 @@ return [
     'support' => [
         'phone' => env('SUPPORT_PHONE', '9350188297'),
         'default_city' => env('SUPPORT_DEFAULT_CITY', 'Delhi'),
+        'whatsapp_message' => env('SUPPORT_WHATSAPP_MESSAGE', 'Hello SCAK, I have a query about the catalog.'),
     ],
     'wordpress' => [
         'uploads_path' => env('WP_UPLOADS_PATH'),
