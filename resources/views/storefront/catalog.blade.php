@@ -3,15 +3,11 @@
 @section('content')
     <section class="grid">
         <div class="panel" style="padding: 20px;">
-            <div style="display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <span class="pill">Verified customer</span>
-                    <h1 style="margin: 12px 0 6px;">Welcome, {{ $customer->name }}</h1>
-                    <p class="muted" style="margin: 0;">Browse products, filter by tags and rate, add what you like to cart, and place one order for offline follow-up.</p>
-                </div>
-                <a class="btn-primary" href="{{ route('bucket') }}">Open Cart</a>
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
+                <strong style="font-size:1.05rem;">Catalog</strong>
+                <div id="catalogCount" class="muted">Showing 0 / 0 products</div>
             </div>
-            <div class="field" style="margin-top: 18px;">
+            <div class="field" style="margin-top: 14px;">
                 <label>Search</label>
                 <input id="searchFilter" placeholder="Search by title, SKU, or tag">
             </div>
@@ -22,7 +18,7 @@
         <div id="catalogSentinel" style="height: 1px;"></div>
     </section>
 
-    <button class="btn-primary floating-filter-btn" id="filterFab" type="button">Filter</button>
+    <button class="btn-primary floating-filter-btn" id="filterFab" type="button" aria-label="Open filters">&#9776;</button>
     <div class="drawer-overlay" id="filterOverlay"></div>
     <aside class="drawer" id="filterDrawer">
         <div class="drawer-header">
@@ -59,7 +55,7 @@
             <button class="btn-secondary" id="clearFiltersButton" type="button">Clear Filters</button>
         </div>
     </aside>
-    <a class="btn-primary cart-chip" href="{{ route('bucket') }}" id="cartChip">Cart (0)</a>
+    <a class="btn-primary cart-chip" href="{{ route('bucket') }}" id="cartChip" aria-label="Open cart">&#128722; <span>0</span></a>
 @endsection
 
 @push('scripts')
@@ -67,16 +63,15 @@
     let catalogProducts = [];
     let catalogCurrentPage = 1;
     let catalogLastPage = 1;
+    let catalogTotal = 0;
     let catalogLoading = false;
     let catalogObserver;
 
     function updateCartChip() {
-        document.getElementById('cartChip').textContent = `Cart (${window.scakCart.count()})`;
+        document.querySelector('#cartChip span').textContent = String(window.scakCart.count());
     }
 
     function productCard(product) {
-        const tags = (product.tags || []).map(tag => `<span class="pill">${tag}</span>`).join('');
-        const archiveBadge = product.is_active ? '' : '<span class="pill" style="background:#efe4d2;">Archived</span>';
         const button = product.is_active
             ? `<button class="btn-primary" onclick="window.scakCart.add(${product.id}); updateCartChip();">Add to Cart</button>`
             : `<button class="btn-secondary" disabled>Archived</button>`;
@@ -87,12 +82,7 @@
                     <img src="${product.cover_image_url || 'https://placehold.co/600x750?text=SCAK'}" alt="${product.name}">
                 </a>
                 <div class="product-card-body">
-                    <div style="display:flex; justify-content:space-between; gap:8px; align-items:center;">
-                        <div class="muted">${product.sku || 'SCAK'}</div>
-                        ${archiveBadge}
-                    </div>
                     <strong>${product.name}</strong>
-                    <div class="tag-list">${tags}</div>
                     <div style="font-size: 1.1rem;">Rs. ${Number(product.price).toFixed(2)}</div>
                     ${button}
                 </div>
@@ -173,18 +163,21 @@
         const results = document.getElementById('catalogResults');
         const empty = document.getElementById('catalogEmpty');
         const loadingMore = document.getElementById('catalogLoadingMore');
+        const count = document.getElementById('catalogCount');
 
         results.innerHTML = '';
 
         if (!catalogProducts.length) {
             empty.style.display = 'block';
             loadingMore.style.display = 'none';
+            count.textContent = 'Showing 0 / 0 products';
             return;
         }
 
         empty.style.display = 'none';
         results.innerHTML = renderGroupedProducts(catalogProducts);
         loadingMore.style.display = catalogCurrentPage < catalogLastPage ? 'block' : 'none';
+        count.textContent = `Showing ${catalogProducts.length} / ${Number.isFinite(catalogTotal) ? catalogTotal : catalogProducts.length} products`;
     }
 
     async function loadProducts(reset = true) {
@@ -194,6 +187,7 @@
             catalogProducts = [];
             catalogCurrentPage = 1;
             catalogLastPage = 1;
+            catalogTotal = 0;
             syncCatalogView();
         }
 
@@ -206,6 +200,7 @@
 
         catalogCurrentPage = data.current_page || 1;
         catalogLastPage = data.last_page || 1;
+        catalogTotal = data.total || catalogProducts.length;
 
         if (Array.isArray(data.data) && data.data.length) {
             const seen = new Set(catalogProducts.map(product => product.id));

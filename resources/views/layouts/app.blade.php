@@ -30,38 +30,47 @@
         .shell {
             max-width: 1180px;
             margin: 0 auto;
-            padding: 24px;
+            padding: 96px 24px 24px;
         }
         .topbar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 16px;
-            padding: 18px 24px;
-            background: rgba(255,255,255,0.72);
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.82);
             backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(31,42,55,0.08);
-            position: sticky;
-            top: 0;
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            width: min(1180px, calc(100vw - 24px));
+            transform: translate(-50%, -120%);
+            border-radius: 22px;
+            box-shadow: 0 16px 32px rgba(31, 42, 55, 0.12);
             z-index: 20;
+            transition: transform .22s ease;
+        }
+        .topbar.visible {
+            transform: translate(-50%, 0);
         }
         .brand {
             display: flex;
             flex-direction: column;
-            gap: 4px;
+            gap: 2px;
         }
         .brand strong {
             letter-spacing: 0.18em;
             text-transform: uppercase;
-            font-size: 0.9rem;
+            font-size: 0.86rem;
         }
         .brand span {
             color: #6d5842;
-            font-size: 0.92rem;
+            font-size: 0.82rem;
         }
         .nav {
             display: flex;
-            gap: 16px;
+            gap: 12px;
             align-items: center;
         }
         .btn, button {
@@ -160,8 +169,8 @@
             position: fixed;
             right: 24px;
             bottom: 88px;
-            width: 56px;
-            height: 56px;
+            width: 60px;
+            height: 60px;
             padding: 0;
             display: inline-flex;
             align-items: center;
@@ -169,12 +178,21 @@
             border-radius: 50%;
             box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
             z-index: 16;
+            font-size: 1.3rem;
         }
         .cart-chip {
             position: fixed;
             right: 24px;
             bottom: 24px;
             z-index: 15;
+            min-width: 60px;
+            height: 60px;
+            padding: 0 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
         }
         .drawer-overlay {
             position: fixed;
@@ -226,11 +244,15 @@
             gap: 8px;
         }
         .tile-date {
-            margin: 4px 0 10px;
-            color: #6d5842;
-            font-size: 0.95rem;
-            letter-spacing: 0.08em;
+            margin: 2px 0 12px;
+            padding: 10px 14px;
+            border-radius: 14px;
+            background: #2f241d;
+            color: #f7efe2;
+            font-size: 0.9rem;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
+            font-weight: 700;
         }
         .empty-state {
             text-align: center;
@@ -250,7 +272,7 @@
         }
         @media (max-width: 640px) {
             .shell {
-                padding: 16px;
+                padding: 88px 16px 16px;
             }
             .product-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -277,8 +299,6 @@
         <nav class="nav">
             @auth
                 <a href="{{ route('catalog') }}">Catalog</a>
-                <a href="{{ route('bucket') }}">Cart</a>
-                <span class="pill">{{ auth()->user()->name }} / {{ auth()->user()->phone }}</span>
                 <button class="btn-secondary" id="logoutButton" type="button">Logout</button>
             @else
                 <a href="{{ route('login') }}">Login</a>
@@ -338,6 +358,19 @@
                 window.location.href = '{{ route('login') }}';
             });
         }
+
+        const topbar = document.querySelector('.topbar');
+        let lastScrollY = window.scrollY;
+
+        function syncTopbarVisibility() {
+            const currentScrollY = window.scrollY;
+            const show = currentScrollY < 40 || currentScrollY < lastScrollY;
+            topbar?.classList.toggle('visible', show);
+            lastScrollY = currentScrollY;
+        }
+
+        syncTopbarVisibility();
+        window.addEventListener('scroll', syncTopbarVisibility, { passive: true });
     </script>
     @stack('scripts')
 </body>
