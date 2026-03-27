@@ -90,13 +90,13 @@ class ProductUpsertService
     /**
      * @param  array<int, UploadedFile>  $uploadedImages
      */
-    public function addImages(Product $product, array $uploadedImages, ?int $coverIndex = null): Product
+    public function addImages(Product $product, array $uploadedImages, ?int $coverIndex = null, bool $alreadyWatermarked = false): Product
     {
         $disk = config('scak.storage.disk', 'products');
         $baseOrder = (int) $product->images()->max('sort_order');
 
         foreach ($uploadedImages as $index => $uploadedImage) {
-            $path = $this->storeProductImage($product, $uploadedImage);
+            $path = $this->storeProductImage($product, $uploadedImage, $alreadyWatermarked);
 
             ProductImage::query()->create([
                 'product_id' => $product->id,
@@ -224,12 +224,14 @@ class ProductUpsertService
         return $candidate;
     }
 
-    protected function storeProductImage(Product $product, UploadedFile $uploadedImage): string
+    protected function storeProductImage(Product $product, UploadedFile $uploadedImage, bool $alreadyWatermarked = false): string
     {
         $disk = config('scak.storage.disk', 'products');
         $fileName = Str::uuid().'.jpg';
         $path = $product->slug.'/'.$fileName;
-        $binary = $this->renderImageWithSkuWatermark($uploadedImage, $product->sku);
+        $binary = $alreadyWatermarked
+            ? $uploadedImage->get()
+            : $this->renderImageWithSkuWatermark($uploadedImage, $product->sku);
 
         Storage::disk($disk)->put($path, $binary);
 

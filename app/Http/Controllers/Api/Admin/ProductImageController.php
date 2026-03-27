@@ -22,6 +22,7 @@ class ProductImageController extends Controller
             $product,
             $request->file('images', []),
             $request->integer('cover_index'),
+            $request->boolean('watermarked'),
         );
 
         $this->auditLogService->record('product.images_uploaded', $request->user(), $product, [

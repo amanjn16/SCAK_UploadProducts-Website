@@ -17,6 +17,7 @@ class UploadProductImagesRequest extends FormRequest
             'images' => ['required', 'array', 'min:1'],
             'images.*' => ['required', 'image', 'max:10240'],
             'cover_index' => ['nullable', 'integer', 'min:0'],
+            'watermarked' => ['nullable', 'boolean'],
         ];
     }
 }
