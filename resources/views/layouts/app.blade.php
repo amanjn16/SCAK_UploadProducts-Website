@@ -308,6 +308,7 @@
     <main class="shell">
         @yield('content')
     </main>
+    @include('partials.customer-otp-modal')
     <script>
         window.scak = {
             csrfToken: document.querySelector('meta[name="csrf-token"]').content,

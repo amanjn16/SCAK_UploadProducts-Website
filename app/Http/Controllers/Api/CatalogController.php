@@ -72,6 +72,9 @@ class CatalogController extends Controller
             'features' => $product->features->pluck('name')->values(),
             'tags' => $product->tags->pluck('name')->values(),
             'created_at' => optional($product->created_at)?->toIso8601String(),
+            'published_at' => optional($product->published_at)?->toIso8601String(),
+            'legacy_published_at' => optional($product->legacy_published_at)?->toIso8601String(),
+            'legacy_modified_at' => optional($product->legacy_modified_at)?->toIso8601String(),
             'images' => $detailed
                 ? $product->images->map(fn ($image) => [
                     'id' => $image->id,

@@ -27,6 +27,8 @@ class ProductController extends Controller
             ->with(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images'])
             ->when(! $request->boolean('include_archived', true), fn ($query) => $query->where('is_active', true))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
+            ->when($request->filled('min_price'), fn ($query) => $query->where('price', '>=', $request->float('min_price')))
+            ->when($request->filled('max_price'), fn ($query) => $query->where('price', '<=', $request->float('max_price')))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->string('search')->toString();
 

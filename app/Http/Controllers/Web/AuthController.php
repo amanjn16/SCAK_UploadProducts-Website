@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
 {
-    public function show(): View
+    public function show(): RedirectResponse
     {
-        return view('auth.login');
+        return redirect()->route('catalog');
     }
 }

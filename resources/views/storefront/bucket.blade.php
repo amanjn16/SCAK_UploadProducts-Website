@@ -102,6 +102,11 @@
         const data = await response.json();
 
         if (!response.ok) {
+            if (response.status === 401) {
+                bucketMessage.textContent = 'Verify OTP to place your order.';
+                window.scakAuthPrompt?.open();
+                return;
+            }
             bucketMessage.textContent = data.message || 'Unable to place your order.';
             return;
         }

@@ -66,6 +66,7 @@
     let catalogTotal = 0;
     let catalogLoading = false;
     let catalogObserver;
+    let otpPromptTimer;
 
     function updateCartChip() {
         document.querySelector('#cartChip span').textContent = String(window.scakCart.count());
@@ -103,7 +104,8 @@
         }
 
         const groups = products.reduce((carry, product) => {
-            const dateLabel = new Date(product.created_at || Date.now()).toLocaleDateString(undefined, {
+            const dateSource = product.legacy_published_at || product.published_at || product.created_at || Date.now();
+            const dateLabel = new Date(dateSource).toLocaleDateString(undefined, {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric'
@@ -269,5 +271,11 @@
     updateCartChip();
     setupInfiniteScroll();
     loadFilters().then(() => loadProducts(true));
+
+    @guest
+    otpPromptTimer = window.setTimeout(() => {
+        window.scakAuthPrompt?.open();
+    }, 15000);
+    @endguest
 </script>
 @endpush

@@ -22,11 +22,11 @@ class ExampleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_root_redirects_guests_to_login(): void
+    public function test_root_shows_public_catalog_to_guests(): void
     {
         $response = $this->get('/');
 
-        $response->assertRedirect(route('login'));
+        $response->assertOk();
     }
 
     public function test_customer_can_request_and_verify_otp(): void
