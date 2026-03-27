@@ -196,6 +196,7 @@ class WordPressImportService
                 'legacy_modified_at' => $post->post_modified ?: null,
                 'legacy_imported_at' => now(),
             ])->save();
+            $this->productUpsertService->syncSearchText($product->loadMissing(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags']));
 
             $imageSummary = $this->importProductImages($product, $meta, $connection);
             $summary['images_imported'] += $imageSummary['imported'];
@@ -290,13 +291,17 @@ class WordPressImportService
                 continue;
             }
 
-            $targetPath = $this->productUpsertService->storeLegacyProductImage($product, $raw, basename($fullPath));
+            $storedImage = $this->productUpsertService->storeLegacyProductImage($product, $raw, basename($fullPath));
 
             ProductImage::query()->create([
                 'product_id' => $product->id,
                 'disk' => $disk,
-                'path' => $targetPath,
+                'path' => $storedImage['path'],
+                'medium_path' => $storedImage['medium_path'],
+                'thumb_path' => $storedImage['thumb_path'],
                 'original_name' => basename($fullPath),
+                'mime_type' => $storedImage['mime_type'],
+                'bytes' => $storedImage['bytes'],
                 'sort_order' => $index + 1,
                 'is_cover' => $index === 0,
                 'legacy_wordpress_attachment_id' => $attachmentId,

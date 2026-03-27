@@ -12,9 +12,10 @@ class ActivityLogController extends Controller
     public function index(Request $request): JsonResponse
     {
         $logs = AuditLog::query()
-            ->with('user')
+            ->select(['id', 'user_id', 'action', 'meta', 'ip_address', 'user_agent', 'created_at'])
+            ->with('user:id,name,phone')
             ->latest()
-            ->paginate((int) $request->integer('per_page', 100))
+            ->paginate((int) $request->integer('per_page', 25))
             ->through(fn (AuditLog $log) => [
                 'id' => $log->id,
                 'action' => $log->action,

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Services\AuditLogService;
+use App\Services\CatalogCacheService;
 use App\Services\ProductUpsertService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -15,40 +16,48 @@ class ProductBatchController extends Controller
     public function __construct(
         private readonly ProductUpsertService $productUpsertService,
         private readonly AuditLogService $auditLogService,
+        private readonly CatalogCacheService $catalogCacheService,
     ) {}
 
     public function index(): JsonResponse
     {
-        $batches = Product::query()
-            ->withCount('images')
-            ->get()
-            ->map(function (Product $product): array {
-                $monthSource = $product->legacy_published_at ?? $product->created_at ?? now();
-                $month = CarbonImmutable::parse($monthSource)->startOfMonth();
+        $batches = $this->catalogCacheService->remember(
+            'product-batches',
+            [],
+            (int) config('scak.cache.admin_ttl_seconds', 180),
+            function () {
+                return Product::query()
+                    ->withCount('images')
+                    ->get()
+                    ->map(function (Product $product): array {
+                        $monthSource = $product->legacy_published_at ?? $product->created_at ?? now();
+                        $month = CarbonImmutable::parse($monthSource)->startOfMonth();
 
-                return [
-                    'month_key' => $month->format('Y-m'),
-                    'month_label' => $month->format('F Y'),
-                    'product_id' => $product->id,
-                    'images_count' => $product->images_count,
-                    'is_active' => $product->is_active,
-                ];
-            })
-            ->groupBy('month_key')
-            ->map(function ($items, string $monthKey): array {
-                $month = CarbonImmutable::createFromFormat('Y-m', $monthKey)->startOfMonth();
+                        return [
+                            'month_key' => $month->format('Y-m'),
+                            'month_label' => $month->format('F Y'),
+                            'product_id' => $product->id,
+                            'images_count' => $product->images_count,
+                            'is_active' => $product->is_active,
+                        ];
+                    })
+                    ->groupBy('month_key')
+                    ->map(function ($items, string $monthKey): array {
+                        $month = CarbonImmutable::createFromFormat('Y-m', $monthKey)->startOfMonth();
 
-                return [
-                    'month_key' => $monthKey,
-                    'month_label' => $month->format('F Y'),
-                    'products_count' => $items->count(),
-                    'images_count' => (int) $items->sum('images_count'),
-                    'active_count' => (int) $items->where('is_active', true)->count(),
-                    'archived_count' => (int) $items->where('is_active', false)->count(),
-                ];
-            })
-            ->sortByDesc('month_key')
-            ->values();
+                        return [
+                            'month_key' => $monthKey,
+                            'month_label' => $month->format('F Y'),
+                            'products_count' => $items->count(),
+                            'images_count' => (int) $items->sum('images_count'),
+                            'active_count' => (int) $items->where('is_active', true)->count(),
+                            'archived_count' => (int) $items->where('is_active', false)->count(),
+                        ];
+                    })
+                    ->sortByDesc('month_key')
+                    ->values();
+            }
+        );
 
         return response()->json([
             'data' => $batches,
@@ -87,6 +96,7 @@ class ProductBatchController extends Controller
             'images_count' => $imagesCount,
             'product_ids' => $productIds,
         ], $request);
+        $this->catalogCacheService->bump();
 
         return response()->json([
             'message' => count($productIds) > 0

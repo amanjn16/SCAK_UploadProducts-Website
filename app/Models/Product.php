@@ -36,7 +36,7 @@ class Product extends Model
         'legacy_imported_at',
     ];
 
-    protected $appends = ['cover_image_url'];
+    protected $appends = ['cover_image_url', 'cover_image_thumb_url', 'cover_image_original_url'];
 
     protected function casts(): array
     {
@@ -113,6 +113,21 @@ class Product extends Model
 
     public function getCoverImageUrlAttribute(): ?string
     {
+        return $this->resolveCoverImage()?->medium_url ?? $this->resolveCoverImage()?->url;
+    }
+
+    public function getCoverImageThumbUrlAttribute(): ?string
+    {
+        return $this->resolveCoverImage()?->thumb_url ?? $this->resolveCoverImage()?->url;
+    }
+
+    public function getCoverImageOriginalUrlAttribute(): ?string
+    {
+        return $this->resolveCoverImage()?->url;
+    }
+
+    protected function resolveCoverImage(): ?ProductImage
+    {
         $image = null;
 
         if ($this->relationLoaded('coverImage')) {
@@ -127,8 +142,6 @@ class Product extends Model
             $image = $this->images->firstWhere('is_cover', true) ?? $this->images->sortBy('sort_order')->first();
         }
 
-        $image ??= $this->coverImage()->first() ?? $this->firstImage()->first();
-
-        return $image?->url;
+        return $image ?? $this->coverImage()->first() ?? $this->firstImage()->first();
     }
 }

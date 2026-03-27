@@ -12,7 +12,19 @@ class LegacyAnalyticsController extends Controller
     public function index(Request $request): JsonResponse
     {
         $events = LegacyAnalyticsEvent::query()
-            ->with('user')
+            ->select([
+                'id',
+                'user_id',
+                'phone',
+                'customer_name',
+                'customer_city',
+                'event_type',
+                'ip_address',
+                'user_agent',
+                'event_data',
+                'occurred_at',
+            ])
+            ->with('user:id,name,city')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->string('search')->toString();
                 $query->where(function ($inner) use ($search): void {

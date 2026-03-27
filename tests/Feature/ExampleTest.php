@@ -105,7 +105,7 @@ class ExampleTest extends TestCase
         $admin = User::query()->create([
             'name' => 'Admin',
             'phone' => '+919999999999',
-            'role' => User::ROLE_ADMIN,
+            'role' => User::ROLE_SUPER_ADMIN,
             'phone_verified_at' => now(),
             'approved_at' => now(),
             'is_active' => true,
@@ -146,7 +146,7 @@ class ExampleTest extends TestCase
         $admin = User::query()->create([
             'name' => 'Admin',
             'phone' => '+919999999999',
-            'role' => User::ROLE_ADMIN,
+            'role' => User::ROLE_SUPER_ADMIN,
             'phone_verified_at' => now(),
             'approved_at' => now(),
             'is_active' => true,
@@ -197,7 +197,7 @@ class ExampleTest extends TestCase
         $admin = User::query()->create([
             'name' => 'Admin',
             'phone' => '+919999999999',
-            'role' => User::ROLE_ADMIN,
+            'role' => User::ROLE_SUPER_ADMIN,
             'phone_verified_at' => now(),
             'approved_at' => now(),
             'is_active' => true,
@@ -556,6 +556,39 @@ class ExampleTest extends TestCase
 
         $this->assertFalse($result['missing']);
         Storage::disk('products')->assertExists($image->fresh()->path);
+        if ($image->fresh()->medium_path) {
+            Storage::disk('products')->assertExists($image->fresh()->medium_path);
+        }
+        if ($image->fresh()->thumb_path) {
+            Storage::disk('products')->assertExists($image->fresh()->thumb_path);
+        }
+    }
+
+    public function test_admin_cannot_hard_delete_without_super_admin_role(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'phone' => '+919999999999',
+            'role' => User::ROLE_ADMIN,
+            'phone_verified_at' => now(),
+            'approved_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $product = Product::query()->create([
+            'name' => 'Protected Suit',
+            'slug' => 'protected-suit',
+            'sku' => 'S8989',
+            'price' => 1499,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->deleteJson("/admin/products/{$product->id}")
+            ->assertForbidden();
     }
 
     protected function setUpWordPressConnection(): array

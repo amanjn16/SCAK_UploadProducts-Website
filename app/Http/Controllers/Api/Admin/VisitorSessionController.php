@@ -12,7 +12,26 @@ class VisitorSessionController extends Controller
     public function index(Request $request): JsonResponse
     {
         $sessions = VisitorSession::query()
-            ->with('user')
+            ->select([
+                'id',
+                'user_id',
+                'phone',
+                'customer_name',
+                'customer_city',
+                'session_key',
+                'current_page',
+                'entry_page',
+                'referrer',
+                'page_views',
+                'duration_seconds',
+                'device_type',
+                'browser',
+                'os',
+                'is_legacy_import',
+                'started_at',
+                'last_activity_at',
+            ])
+            ->with('user:id,name,city')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->string('search')->toString();
                 $query->where(function ($inner) use ($search) {
@@ -26,7 +45,7 @@ class VisitorSessionController extends Controller
                 });
             })
             ->latest('last_activity_at')
-            ->paginate(100)
+            ->paginate((int) $request->integer('per_page', 25))
             ->through(fn (VisitorSession $session) => [
                 'id' => $session->id,
                 'phone' => $session->phone,

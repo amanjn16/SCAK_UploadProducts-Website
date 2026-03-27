@@ -9,6 +9,7 @@ use App\Http\Requests\BulkUpdateProductStatusRequest;
 use App\Http\Requests\UpsertProductRequest;
 use App\Models\Product;
 use App\Services\AuditLogService;
+use App\Services\CatalogCacheService;
 use App\Services\ProductUpsertService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,7 @@ class ProductController extends Controller
     public function __construct(
         private readonly ProductUpsertService $productUpsertService,
         private readonly AuditLogService $auditLogService,
+        private readonly CatalogCacheService $catalogCacheService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -38,10 +40,11 @@ class ProductController extends Controller
                 'published_at',
                 'legacy_published_at',
                 'legacy_modified_at',
+                'search_text',
             ])
             ->with([
-                'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
-                'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'coverImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                'firstImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
             ])
             ->when(! $request->boolean('include_archived', true), fn ($query) => $query->where('is_active', true))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
@@ -52,10 +55,9 @@ class ProductController extends Controller
 
                 $query->where(function ($inner) use ($search) {
                     $inner
-                        ->where('name', 'like', '%'.$search.'%')
+                        ->where('search_text', 'like', '%'.mb_strtolower($search).'%')
                         ->orWhere('sku', 'like', '%'.$search.'%')
-                        ->orWhere('legacy_wordpress_sku', 'like', '%'.$search.'%')
-                        ->orWhereHas('tags', fn ($tagQuery) => $tagQuery->where('name', 'like', '%'.$search.'%'));
+                        ->orWhere('legacy_wordpress_sku', 'like', '%'.$search.'%');
                 });
             })
             ->when($this->selectedTagSlugs($request) !== [], function ($query) use ($request) {
@@ -75,9 +77,9 @@ class ProductController extends Controller
         $product = $this->productUpsertService->upsert($request->validated(), null)
             ->load([
                 'tags:id,name,slug',
-                'images:id,product_id,disk,path,original_name,sort_order,is_cover',
-                'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
-                'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'images:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                'coverImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                'firstImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
             ]);
 
         $this->auditLogService->record('product.created', $request->user(), $product, [
@@ -97,9 +99,9 @@ class ProductController extends Controller
             'data' => $this->transformProduct(
                 $product->load([
                     'tags:id,name,slug',
-                    'images:id,product_id,disk,path,original_name,sort_order,is_cover',
-                    'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
-                    'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                    'images:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                    'coverImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                    'firstImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
                 ]),
                 true
             ),
@@ -111,9 +113,9 @@ class ProductController extends Controller
         $product = $this->productUpsertService->upsert($request->validated(), $product)
             ->load([
                 'tags:id,name,slug',
-                'images:id,product_id,disk,path,original_name,sort_order,is_cover',
-                'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
-                'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                'images:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                'coverImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                'firstImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
             ]);
 
         $this->auditLogService->record('product.updated', $request->user(), $product, [
@@ -162,6 +164,7 @@ class ProductController extends Controller
             'status' => $status,
             'product_ids' => $products->pluck('id')->values(),
         ], $request);
+        $this->catalogCacheService->bump();
 
         return response()->json([
             'message' => 'Product statuses updated successfully.',
@@ -180,10 +183,11 @@ class ProductController extends Controller
                     'published_at',
                     'legacy_published_at',
                     'legacy_modified_at',
+                    'search_text',
                 ])
                 ->with([
-                    'coverImage:id,product_id,disk,path,original_name,sort_order,is_cover',
-                    'firstImage:id,product_id,disk,path,original_name,sort_order,is_cover',
+                    'coverImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
+                    'firstImage:id,product_id,disk,path,medium_path,thumb_path,original_name,mime_type,sort_order,is_cover',
                 ])
                 ->whereIn('id', $products->pluck('id'))
                 ->get()
@@ -236,6 +240,8 @@ class ProductController extends Controller
             'legacy_sku' => $product->legacy_wordpress_sku,
             'price' => (float) $product->price,
             'cover_image_url' => $product->cover_image_url,
+            'cover_image_thumb_url' => $product->cover_image_thumb_url,
+            'cover_image_original_url' => $product->cover_image_original_url,
             'status' => $product->status,
             'is_active' => $product->is_active,
             'is_legacy_import' => $product->is_legacy_import,
@@ -254,6 +260,8 @@ class ProductController extends Controller
         $payload['images'] = $product->images->map(fn ($image) => [
             'id' => $image->id,
             'url' => $image->url,
+            'medium_url' => $image->medium_url,
+            'thumb_url' => $image->thumb_url,
             'is_cover' => $image->is_cover,
             'sort_order' => $image->sort_order,
         ])->values();

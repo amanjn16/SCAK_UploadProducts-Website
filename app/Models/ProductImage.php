@@ -14,18 +14,23 @@ class ProductImage extends Model
         'product_id',
         'disk',
         'path',
+        'medium_path',
+        'thumb_path',
         'original_name',
+        'mime_type',
+        'bytes',
         'sort_order',
         'is_cover',
         'legacy_wordpress_attachment_id',
     ];
 
-    protected $appends = ['url'];
+    protected $appends = ['url', 'medium_url', 'thumb_url'];
 
     protected function casts(): array
     {
         return [
             'is_cover' => 'boolean',
+            'bytes' => 'integer',
         ];
     }
 
@@ -37,5 +42,15 @@ class ProductImage extends Model
     public function getUrlAttribute(): string
     {
         return route('media.products.show', $this);
+    }
+
+    public function getMediumUrlAttribute(): string
+    {
+        return route('media.products.show', ['image' => $this, 'variant' => 'medium']);
+    }
+
+    public function getThumbUrlAttribute(): string
+    {
+        return route('media.products.show', ['image' => $this, 'variant' => 'thumb']);
     }
 }

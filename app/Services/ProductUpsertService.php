@@ -18,6 +18,10 @@ use Illuminate\Support\Str;
 
 class ProductUpsertService
 {
+    public function __construct(
+        private readonly CatalogCacheService $catalogCacheService,
+    ) {}
+
     public function upsert(array $payload, ?Product $product = null): Product
     {
         $product ??= new Product();
@@ -78,12 +82,15 @@ class ProductUpsertService
         $product->sizes()->sync($sizeIds);
         $product->features()->sync($featureIds);
         $product->tags()->sync($tagIds);
+        $this->syncSearchText($product->loadMissing(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags']));
 
         if (! empty($payload['image_order'] ?? [])) {
             $this->reorderImages($product, collect($payload['image_order']), $payload['cover_image_id'] ?? null);
         } elseif (! empty($payload['cover_image_id'] ?? null)) {
             $this->markCoverImage($product, (int) $payload['cover_image_id']);
         }
+
+        $this->catalogCacheService->bump();
 
         return $product->load(['supplier', 'city', 'category', 'topFabric', 'dupattaFabric', 'sizes', 'features', 'tags', 'images']);
     }
@@ -97,13 +104,17 @@ class ProductUpsertService
         $baseOrder = (int) $product->images()->max('sort_order');
 
         foreach ($uploadedImages as $index => $uploadedImage) {
-            $path = $this->storeProductImage($product, $uploadedImage, $alreadyWatermarked);
+            $storedImage = $this->storeProductImage($product, $uploadedImage, $alreadyWatermarked);
 
             ProductImage::query()->create([
                 'product_id' => $product->id,
                 'disk' => $disk,
-                'path' => $path,
+                'path' => $storedImage['path'],
+                'medium_path' => $storedImage['medium_path'],
+                'thumb_path' => $storedImage['thumb_path'],
                 'original_name' => $uploadedImage->getClientOriginalName(),
+                'mime_type' => $storedImage['mime_type'],
+                'bytes' => $storedImage['bytes'],
                 'sort_order' => $baseOrder + $index + 1,
                 'is_cover' => $coverIndex === $index || (! $product->images()->exists() && $index === 0),
             ]);
@@ -117,6 +128,8 @@ class ProductUpsertService
             }
         }
 
+        $this->catalogCacheService->bump();
+
         return $product->load('images');
     }
 
@@ -125,8 +138,10 @@ class ProductUpsertService
         $product->loadMissing('images', 'tags', 'sizes', 'features');
 
         foreach ($product->images as $image) {
-            if (Storage::disk($image->disk)->exists($image->path)) {
-                Storage::disk($image->disk)->delete($image->path);
+            $paths = array_filter([$image->path, $image->medium_path, $image->thumb_path]);
+
+            if ($paths !== []) {
+                Storage::disk($image->disk)->delete($paths);
             }
         }
 
@@ -134,6 +149,7 @@ class ProductUpsertService
         $product->sizes()->detach();
         $product->features()->detach();
         $product->forceDelete();
+        $this->catalogCacheService->bump();
     }
 
     public function reorderImages(Product $product, Collection $imageOrder, ?int $coverImageId = null): void
@@ -151,6 +167,33 @@ class ProductUpsertService
     {
         $product->images()->update(['is_cover' => false]);
         $product->images()->whereKey($coverImageId)->update(['is_cover' => true]);
+        $this->catalogCacheService->bump();
+    }
+
+    public function syncSearchText(Product $product): void
+    {
+        $tokens = collect([
+            $product->name,
+            $product->slug,
+            $product->sku,
+            $product->legacy_wordpress_sku,
+            $product->supplier?->name,
+            $product->city?->name,
+            $product->category?->name,
+            $product->topFabric?->name,
+            $product->dupattaFabric?->name,
+        ])
+            ->merge($product->tags->pluck('name'))
+            ->merge($product->sizes->pluck('name'))
+            ->merge($product->features->pluck('name'))
+            ->filter()
+            ->map(fn ($value) => Str::of((string) $value)->lower()->squish()->toString())
+            ->unique()
+            ->implode(' | ');
+
+        if ($product->search_text !== $tokens) {
+            $product->forceFill(['search_text' => $tokens])->save();
+        }
     }
 
     protected function firstOrCreateByName(string $modelClass, string $name, array $extra = [])
@@ -245,7 +288,7 @@ class ProductUpsertService
             ->implode(' ');
     }
 
-    protected function storeProductImage(Product $product, UploadedFile $uploadedImage, bool $alreadyWatermarked = false): string
+    protected function storeProductImage(Product $product, UploadedFile $uploadedImage, bool $alreadyWatermarked = false): array
     {
         $raw = $uploadedImage->get();
         $extension = $uploadedImage->getClientOriginalExtension() ?: $uploadedImage->extension() ?: 'jpg';
@@ -256,7 +299,7 @@ class ProductUpsertService
         );
     }
 
-    public function storeLegacyProductImage(Product $product, string $raw, ?string $originalName = null): string
+    public function storeLegacyProductImage(Product $product, string $raw, ?string $originalName = null): array
     {
         $extension = pathinfo((string) $originalName, PATHINFO_EXTENSION) ?: 'jpg';
 
@@ -275,44 +318,81 @@ class ProductUpsertService
         }
 
         $originalPath = $image->path;
+        $beforeBytes = 0;
+        foreach (array_filter([$image->path, $image->medium_path, $image->thumb_path]) as $existingPath) {
+            if ($disk->exists($existingPath)) {
+                $beforeBytes += strlen($disk->get($existingPath));
+            }
+        }
         $originalBinary = $disk->get($originalPath);
-        $beforeBytes = strlen($originalBinary);
         $optimized = $this->optimizeImageBinary(
             $originalBinary,
             $image->product?->sku,
             false,
             pathinfo($originalPath, PATHINFO_EXTENSION) ?: 'jpg',
         );
-        $afterBytes = strlen($optimized['binary']);
-        $targetPath = $this->pathWithExtension($originalPath, $optimized['extension']);
+        $stored = $this->storeProductImageBinary($image->product, $optimized, $originalPath);
+        $afterBytes = $stored['bytes']
+            + $this->fileBytesOnDisk($disk, $stored['medium_path'])
+            + $this->fileBytesOnDisk($disk, $stored['thumb_path']);
 
-        $disk->put($targetPath, $optimized['binary']);
-
-        if ($targetPath !== $originalPath && $disk->exists($originalPath)) {
-            $disk->delete($originalPath);
+        foreach (array_filter([$image->path, $image->medium_path, $image->thumb_path]) as $existingPath) {
+            if (! in_array($existingPath, array_filter([$stored['path'], $stored['medium_path'], $stored['thumb_path']]), true) && $disk->exists($existingPath)) {
+                $disk->delete($existingPath);
+            }
         }
 
-        $image->forceFill(['path' => $targetPath])->save();
+        $image->forceFill([
+            'path' => $stored['path'],
+            'medium_path' => $stored['medium_path'],
+            'thumb_path' => $stored['thumb_path'],
+            'mime_type' => $stored['mime_type'],
+            'bytes' => $stored['bytes'],
+        ])->save();
 
         return [
-            'optimized' => $targetPath !== $originalPath || $afterBytes !== $beforeBytes,
+            'optimized' => $stored['path'] !== $originalPath || $afterBytes !== $beforeBytes,
             'missing' => false,
             'bytes_saved' => max(0, $beforeBytes - $afterBytes),
             'before_bytes' => $beforeBytes,
             'after_bytes' => $afterBytes,
-            'path_changed' => $targetPath !== $originalPath,
+            'path_changed' => $stored['path'] !== $originalPath,
         ];
     }
 
-    protected function storeProductImageBinary(Product $product, array $optimized): string
+    protected function storeProductImageBinary(Product $product, array $optimized, ?string $preferredPath = null): array
     {
         $disk = config('scak.storage.disk', 'products');
         $extension = $this->normalizeImageExtension($optimized['extension'] ?? 'jpg');
-        $fileName = Str::uuid().'.'.$extension;
-        $path = $product->slug.'/'.$fileName;
-        Storage::disk($disk)->put($path, $optimized['binary']);
+        $fileName = $preferredPath
+            ? basename($this->pathWithExtension($preferredPath, $extension))
+            : Str::uuid().'.'.$extension;
+        $directory = $preferredPath
+            ? trim((string) pathinfo($preferredPath, PATHINFO_DIRNAME), '.\\/')
+            : $product->slug;
+        $path = trim($directory.'/'.$fileName, '/');
+        $storage = Storage::disk($disk);
+        $storage->put($path, $optimized['binary']);
 
-        return $path;
+        $mediumPath = null;
+        if (! empty($optimized['medium_binary'])) {
+            $mediumPath = trim($directory.'/medium-'.pathinfo($fileName, PATHINFO_FILENAME).'.'.$extension, '/');
+            $storage->put($mediumPath, $optimized['medium_binary']);
+        }
+
+        $thumbPath = null;
+        if (! empty($optimized['thumb_binary'])) {
+            $thumbPath = trim($directory.'/thumb-'.pathinfo($fileName, PATHINFO_FILENAME).'.'.$extension, '/');
+            $storage->put($thumbPath, $optimized['thumb_binary']);
+        }
+
+        return [
+            'path' => $path,
+            'medium_path' => $mediumPath,
+            'thumb_path' => $thumbPath,
+            'mime_type' => $optimized['mime_type'] ?? 'image/jpeg',
+            'bytes' => strlen($optimized['binary']),
+        ];
     }
 
     protected function optimizeImageBinary(string $raw, ?string $sku, bool $applyWatermark, ?string $extension = null): array
@@ -323,6 +403,7 @@ class ProductUpsertService
             return [
                 'binary' => $raw,
                 'extension' => $normalizedExtension,
+                'mime_type' => $this->mimeTypeForExtension($normalizedExtension),
             ];
         }
 
@@ -332,6 +413,7 @@ class ProductUpsertService
             return [
                 'binary' => $raw,
                 'extension' => $normalizedExtension,
+                'mime_type' => $this->mimeTypeForExtension($normalizedExtension),
             ];
         }
 
@@ -345,16 +427,23 @@ class ProductUpsertService
             $this->applySkuWatermark($image, $sku);
         }
 
-        $preferWebp = (bool) config('scak.images.prefer_webp', true) && function_exists('imagewebp');
-        $output = $preferWebp
-            ? $this->encodeWebp($image)
-            : $this->encodeJpeg($image);
+        $format = $this->preferredOutputExtension();
+        $output = $this->encodeImage($image, $format);
+        $mediumBinary = $this->renderVariantBinary($image, (int) config('scak.images.medium_dimension', 960), $format);
+        $thumbBinary = $this->renderVariantBinary($image, (int) config('scak.images.thumb_dimension', 420), $format);
 
         imagedestroy($image);
 
-        return $output ?? [
+        return $output ? [
+            'binary' => $output['binary'],
+            'medium_binary' => $mediumBinary,
+            'thumb_binary' => $thumbBinary,
+            'extension' => $output['extension'],
+            'mime_type' => $output['mime_type'],
+        ] : [
             'binary' => $raw,
             'extension' => $normalizedExtension,
+            'mime_type' => $this->mimeTypeForExtension($normalizedExtension),
         ];
     }
 
@@ -410,6 +499,28 @@ class ProductUpsertService
         return [
             'binary' => $binary,
             'extension' => 'webp',
+            'mime_type' => 'image/webp',
+        ];
+    }
+
+    protected function encodeAvif($image): ?array
+    {
+        if (! function_exists('imageavif')) {
+            return null;
+        }
+
+        ob_start();
+        $encoded = imageavif($image, null, (int) config('scak.images.avif_quality', 60));
+        $binary = ob_get_clean();
+
+        if (! $encoded || $binary === false) {
+            return null;
+        }
+
+        return [
+            'binary' => $binary,
+            'extension' => 'avif',
+            'mime_type' => 'image/avif',
         ];
     }
 
@@ -426,7 +537,42 @@ class ProductUpsertService
         return [
             'binary' => $binary,
             'extension' => 'jpg',
+            'mime_type' => 'image/jpeg',
         ];
+    }
+
+    protected function renderVariantBinary($image, int $dimension, string $format): ?string
+    {
+        $variant = $this->resizeImageResource($image, $dimension);
+        $encoded = $this->encodeImage($variant, $format);
+
+        if ($variant !== $image) {
+            imagedestroy($variant);
+        }
+
+        return $encoded['binary'] ?? null;
+    }
+
+    protected function encodeImage($image, string $format): ?array
+    {
+        return match ($format) {
+            'avif' => $this->encodeAvif($image) ?? $this->encodeWebp($image) ?? $this->encodeJpeg($image),
+            'webp' => $this->encodeWebp($image) ?? $this->encodeJpeg($image),
+            default => $this->encodeJpeg($image),
+        };
+    }
+
+    protected function preferredOutputExtension(): string
+    {
+        if ((bool) config('scak.images.prefer_avif', false) && function_exists('imageavif')) {
+            return 'avif';
+        }
+
+        if ((bool) config('scak.images.prefer_webp', true) && function_exists('imagewebp')) {
+            return 'webp';
+        }
+
+        return 'jpg';
     }
 
     protected function normalizeImageExtension(?string $extension): string
@@ -440,7 +586,18 @@ class ProductUpsertService
             'jpeg', 'jpg' => 'jpg',
             'png' => 'png',
             'webp' => 'webp',
+            'avif' => 'avif',
             default => 'jpg',
+        };
+    }
+
+    protected function mimeTypeForExtension(string $extension): string
+    {
+        return match ($extension) {
+            'webp' => 'image/webp',
+            'avif' => 'image/avif',
+            'png' => 'image/png',
+            default => 'image/jpeg',
         };
     }
 
@@ -451,5 +608,14 @@ class ProductUpsertService
         $filename = $pathInfo['filename'] ?? Str::uuid()->toString();
 
         return trim(($directory === '.' ? '' : $directory.'/').$filename.'.'.$extension, '/');
+    }
+
+    protected function fileBytesOnDisk($disk, ?string $path): int
+    {
+        if (! $path || ! $disk->exists($path)) {
+            return 0;
+        }
+
+        return strlen($disk->get($path));
     }
 }
