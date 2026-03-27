@@ -289,8 +289,8 @@ class ProductUpsertService
 
         $width = imagesx($image);
         $height = imagesy($image);
-        $font = 1;
-        $margin = max(6, (int) round(min($width, $height) * 0.012));
+        $font = 3;
+        $margin = max(10, (int) round(min($width, $height) * 0.02));
         $textHeight = imagefontheight($font);
         $y = max(0, $height - $textHeight - $margin);
         $shadowColor = imagecolorallocatealpha($image, 0, 0, 0, 70);
