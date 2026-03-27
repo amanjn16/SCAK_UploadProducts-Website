@@ -40,6 +40,7 @@ return [
         'whatsapp_message' => env('SUPPORT_WHATSAPP_MESSAGE', 'Hello SCAK, I have a query about the catalog.'),
     ],
     'storefront' => [
+        'marquee_speed_seconds' => (float) env('STOREFRONT_MARQUEE_SPEED_SECONDS', 9.6),
         'group_links' => [
             ['label' => 'Wholesale Groups', 'url' => null],
             ['label' => 'Netra Groups', 'url' => null],

@@ -34,16 +34,19 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layouts.app', function ($view): void {
             $groupLinks = StorefrontSettingsController::defaultGroupLinks();
+            $marqueeSpeedSeconds = (float) config('scak.storefront.marquee_speed_seconds', 9.6);
 
             try {
                 if (Schema::hasTable('app_settings')) {
                     $groupLinks = StorefrontSettingsController::groupLinks();
+                    $marqueeSpeedSeconds = StorefrontSettingsController::marqueeSpeedSeconds();
                 }
             } catch (\Throwable) {
                 // Keep storefront rendering even during early boot/migration windows.
             }
 
             $view->with('storefrontGroupLinks', $groupLinks);
+            $view->with('storefrontMarqueeSpeedSeconds', $marqueeSpeedSeconds);
         });
     }
 }

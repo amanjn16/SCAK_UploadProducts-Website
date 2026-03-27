@@ -66,7 +66,7 @@
             width: max-content;
             min-width: 100%;
             will-change: transform;
-            animation: scak-marquee 24s linear infinite;
+            animation: scak-marquee {{ number_format((float) ($storefrontMarqueeSpeedSeconds ?? 9.6), 1, '.', '') }}s linear infinite;
         }
         .announcement-track {
             display: inline-flex;
