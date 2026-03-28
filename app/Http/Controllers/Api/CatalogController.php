@@ -99,6 +99,8 @@ class CatalogController extends Controller
             'cover_image_url' => $product->cover_image_url,
             'cover_image_thumb_url' => $product->cover_image_thumb_url,
             'cover_image_original_url' => $product->cover_image_original_url,
+            'pdf_url' => $product->pdf_url,
+            'pdf_name' => $product->pdf_name,
             'status' => $product->status,
             'is_active' => $product->is_active,
             'created_at' => optional($product->created_at)?->toIso8601String(),
@@ -112,6 +114,8 @@ class CatalogController extends Controller
         }
 
         $payload['description'] = $product->description;
+        $payload['pdf_url'] = $product->pdf_url;
+        $payload['pdf_name'] = $product->pdf_name;
         $payload['tags'] = $product->tags->pluck('name')->values();
         $payload['images'] = $product->images->map(fn ($image) => [
             'id' => $image->id,

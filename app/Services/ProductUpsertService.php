@@ -148,8 +148,52 @@ class ProductUpsertService
         $product->tags()->detach();
         $product->sizes()->detach();
         $product->features()->detach();
+        $this->deletePdf($product);
         $product->forceDelete();
         $this->catalogCacheService->bump();
+    }
+
+    public function storePdf(Product $product, UploadedFile $uploadedPdf): Product
+    {
+        $disk = config('scak.storage.disk', 'products');
+
+        if (filled($product->pdf_path)) {
+            Storage::disk($product->pdf_disk ?: $disk)->delete($product->pdf_path);
+        }
+
+        $fileName = Str::uuid().'.pdf';
+        $path = trim($product->slug.'/pdf/'.$fileName, '/');
+
+        Storage::disk($disk)->putFileAs(
+            trim($product->slug.'/pdf', '/'),
+            $uploadedPdf,
+            $fileName
+        );
+
+        $product->forceFill([
+            'pdf_disk' => $disk,
+            'pdf_path' => $path,
+            'pdf_original_name' => $uploadedPdf->getClientOriginalName(),
+            'pdf_mime_type' => $uploadedPdf->getClientMimeType() ?: 'application/pdf',
+        ])->save();
+
+        return $product->refresh();
+    }
+
+    public function deletePdf(Product $product): Product
+    {
+        if (filled($product->pdf_path)) {
+            Storage::disk($product->pdf_disk ?: config('scak.storage.disk', 'products'))->delete($product->pdf_path);
+        }
+
+        $product->forceFill([
+            'pdf_disk' => null,
+            'pdf_path' => null,
+            'pdf_original_name' => null,
+            'pdf_mime_type' => null,
+        ])->save();
+
+        return $product->refresh();
     }
 
     public function reorderImages(Product $product, Collection $imageOrder, ?int $coverImageId = null): void

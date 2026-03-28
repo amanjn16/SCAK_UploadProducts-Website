@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\LegacyAnalyticsController;
 use App\Http\Controllers\Api\Admin\OrderRequestController as AdminOrderRequestController;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Api\Admin\ProductBatchController;
+use App\Http\Controllers\Api\Admin\ProductDocumentController;
 use App\Http\Controllers\Api\Admin\ProductImageController;
 use App\Http\Controllers\Api\Admin\ProductPdfController;
 use App\Http\Controllers\Api\Admin\ProductShareController;
@@ -32,6 +33,8 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::patch('/products/bulk-status', [AdminProductController::class, 'bulkStatus']);
     Route::patch('/products/{product:id}', [AdminProductController::class, 'update']);
     Route::post('/products/{product:id}/images', [ProductImageController::class, 'store']);
+    Route::post('/products/{product:id}/pdf', [ProductDocumentController::class, 'store']);
+    Route::delete('/products/{product:id}/pdf', [ProductDocumentController::class, 'destroy']);
     Route::post('/products/{product:id}/share-pdf', [ProductPdfController::class, 'store']);
     Route::post('/products/share-pdf', [ProductPdfController::class, 'batchStore']);
     Route::post('/products/share-images', [ProductShareController::class, 'store']);

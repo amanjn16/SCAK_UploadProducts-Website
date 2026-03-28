@@ -25,6 +25,10 @@ class Product extends Model
         'top_fabric_id',
         'dupatta_fabric_id',
         'description',
+        'pdf_disk',
+        'pdf_path',
+        'pdf_original_name',
+        'pdf_mime_type',
         'is_active',
         'status',
         'published_at',
@@ -36,7 +40,7 @@ class Product extends Model
         'legacy_imported_at',
     ];
 
-    protected $appends = ['cover_image_url', 'cover_image_thumb_url', 'cover_image_original_url'];
+    protected $appends = ['cover_image_url', 'cover_image_thumb_url', 'cover_image_original_url', 'pdf_url', 'pdf_name'];
 
     protected function casts(): array
     {
@@ -124,6 +128,24 @@ class Product extends Model
     public function getCoverImageOriginalUrlAttribute(): ?string
     {
         return $this->resolveCoverImage()?->url;
+    }
+
+    public function getPdfUrlAttribute(): ?string
+    {
+        if (! filled($this->pdf_path)) {
+            return null;
+        }
+
+        return route('media.products.pdf', ['product' => $this->id]);
+    }
+
+    public function getPdfNameAttribute(): ?string
+    {
+        if (! filled($this->pdf_path)) {
+            return null;
+        }
+
+        return $this->pdf_original_name ?: basename((string) $this->pdf_path);
     }
 
     protected function resolveCoverImage(): ?ProductImage

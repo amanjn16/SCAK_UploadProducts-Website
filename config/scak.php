@@ -14,6 +14,7 @@ return [
         'disk' => env('PRODUCT_STORAGE_DISK', 'products'),
     ],
     'images' => [
+        'max_per_product' => (int) env('PRODUCT_IMAGE_MAX_PER_PRODUCT', 36),
         'max_dimension' => (int) env('PRODUCT_IMAGE_MAX_DIMENSION', 1600),
         'medium_dimension' => (int) env('PRODUCT_IMAGE_MEDIUM_DIMENSION', 960),
         'thumb_dimension' => (int) env('PRODUCT_IMAGE_THUMB_DIMENSION', 420),
