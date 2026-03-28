@@ -33,6 +33,7 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::patch('/products/bulk-status', [AdminProductController::class, 'bulkStatus']);
     Route::patch('/products/{product:id}', [AdminProductController::class, 'update']);
     Route::post('/products/{product:id}/images', [ProductImageController::class, 'store']);
+    Route::delete('/products/{product:id}/images/{image}', [ProductImageController::class, 'destroy']);
     Route::post('/products/{product:id}/pdf', [ProductDocumentController::class, 'store']);
     Route::delete('/products/{product:id}/pdf', [ProductDocumentController::class, 'destroy']);
     Route::post('/products/{product:id}/share-pdf', [ProductPdfController::class, 'store']);

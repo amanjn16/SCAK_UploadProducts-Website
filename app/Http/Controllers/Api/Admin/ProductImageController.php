@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Services\AuditLogService;
 use App\Services\ProductUpsertService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use App\Models\ProductImage;
 
 class ProductImageController extends Controller
 {
@@ -33,5 +35,20 @@ class ProductImageController extends Controller
             'message' => 'Product images uploaded successfully.',
             'images' => $product->images,
         ], 201);
+    }
+
+    public function destroy(Request $request, Product $product, ProductImage $image): JsonResponse
+    {
+        $product = $this->productUpsertService->deleteImage($product, $image);
+
+        $this->auditLogService->record('product.image_deleted', $request->user(), $product, [
+            'image_id' => $image->id,
+            'remaining_images' => $product->images->count(),
+        ], $request);
+
+        return response()->json([
+            'message' => 'Product image deleted successfully.',
+            'images' => $product->images,
+        ]);
     }
 }

@@ -207,6 +207,34 @@ class ProductUpsertService
         }
     }
 
+    public function deleteImage(Product $product, ProductImage $image): Product
+    {
+        abort_unless($image->product_id === $product->id, 404);
+
+        $paths = array_filter([$image->path, $image->medium_path, $image->thumb_path]);
+        if ($paths !== []) {
+            Storage::disk($image->disk)->delete($paths);
+        }
+
+        $wasCover = $image->is_cover;
+        $image->delete();
+
+        $remainingImages = $product->images()->orderBy('sort_order')->orderBy('id')->get();
+        $remainingImages->values()->each(function (ProductImage $remainingImage, int $index): void {
+            if ((int) $remainingImage->sort_order !== ($index + 1)) {
+                $remainingImage->forceFill(['sort_order' => $index + 1])->save();
+            }
+        });
+
+        if ($wasCover && $remainingImages->isNotEmpty()) {
+            $this->markCoverImage($product, (int) $remainingImages->first()->id);
+        }
+
+        $this->catalogCacheService->bump();
+
+        return $product->load('images');
+    }
+
     public function markCoverImage(Product $product, int $coverImageId): void
     {
         $product->images()->update(['is_cover' => false]);
