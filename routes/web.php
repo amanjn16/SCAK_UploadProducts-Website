@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\FilterController;
 use App\Http\Controllers\Api\OrderRequestController as CustomerOrderRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\AdminDashboardController;
 use App\Http\Controllers\Web\AppDownloadsController;
 use App\Http\Controllers\Web\ProductImageController;
 use App\Http\Controllers\Web\ProductPdfController;
@@ -35,6 +36,7 @@ Route::middleware(['customer.auth'])->group(function (): void {
 });
 
 Route::middleware(['customer.auth', 'admin.role'])->group(function (): void {
+    Route::get('/admin', AdminDashboardController::class)->name('admin.dashboard');
     Route::get('/apps', [AppDownloadsController::class, 'index'])->name('apps.index');
 });
 
