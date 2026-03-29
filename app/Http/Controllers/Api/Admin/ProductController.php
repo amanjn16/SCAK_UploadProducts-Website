@@ -258,6 +258,7 @@ class ProductController extends Controller
         }
 
         $payload['description'] = $product->description;
+        $payload['remarks'] = $product->remarks;
         $payload['pdf_url'] = $product->pdf_url;
         $payload['pdf_name'] = $product->pdf_name;
         $payload['tags'] = $product->tags->pluck('name')->values();

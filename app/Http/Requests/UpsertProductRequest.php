@@ -23,6 +23,7 @@ class UpsertProductRequest extends FormRequest
             'top_fabric' => ['nullable', 'string', 'max:255'],
             'dupatta_fabric' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'remarks' => ['nullable', 'string', 'max:5000'],
             'status' => ['nullable', 'in:active,archived'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['string', 'max:255'],

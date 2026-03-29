@@ -54,6 +54,7 @@ class ProductUpsertService
             'top_fabric_id' => $topFabric?->id,
             'dupatta_fabric_id' => $dupattaFabric?->id,
             'description' => $payload['description'] ?? null,
+            'remarks' => filled($payload['remarks'] ?? null) ? trim((string) $payload['remarks']) : null,
             'status' => $payload['status'] ?? 'active',
             'is_active' => ($payload['status'] ?? 'active') === 'active',
             'published_at' => ($payload['status'] ?? 'active') === 'active'

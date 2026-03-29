@@ -139,6 +139,46 @@ class ExampleTest extends TestCase
             ->assertJsonMissingPath('data.0.supplier');
     }
 
+    public function test_product_remarks_are_visible_only_in_admin_api(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'phone' => '+919999999999',
+            'role' => User::ROLE_SUPER_ADMIN,
+            'phone_verified_at' => now(),
+            'approved_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $supplier = Supplier::query()->create(['name' => 'SCAK Supplier', 'slug' => 'scak-supplier']);
+        $city = City::query()->create(['name' => 'Hisar', 'slug' => 'hisar']);
+        $category = Category::query()->create(['name' => 'Suits', 'slug' => 'suits']);
+
+        $product = Product::query()->create([
+            'name' => 'Private Remark Suit',
+            'slug' => 'private-remark-suit',
+            'sku' => 'S1234',
+            'price' => 1999,
+            'supplier_id' => $supplier->id,
+            'city_id' => $city->id,
+            'category_id' => $category->id,
+            'remarks' => 'Admin only note',
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson("/admin/products/{$product->id}")
+            ->assertOk()
+            ->assertJsonPath('data.remarks', 'Admin only note');
+
+        $this->getJson("/products/{$product->slug}")
+            ->assertOk()
+            ->assertJsonMissingPath('data.remarks');
+    }
+
     public function test_admin_can_hard_delete_product_and_images(): void
     {
         Storage::fake('products');

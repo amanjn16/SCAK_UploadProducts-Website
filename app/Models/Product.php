@@ -25,6 +25,7 @@ class Product extends Model
         'top_fabric_id',
         'dupatta_fabric_id',
         'description',
+        'remarks',
         'pdf_disk',
         'pdf_path',
         'pdf_original_name',

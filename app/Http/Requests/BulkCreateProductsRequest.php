@@ -20,6 +20,7 @@ class BulkCreateProductsRequest extends FormRequest
             'products.*.price' => ['required', 'numeric', 'gt:0'],
             'products.*.status' => ['nullable', 'in:active,archived'],
             'products.*.description' => ['nullable', 'string'],
+            'products.*.remarks' => ['nullable', 'string', 'max:5000'],
             'products.*.tags' => ['nullable', 'array'],
             'products.*.tags.*' => ['string', 'max:255'],
             'products.*.supplier' => ['nullable', 'string', 'max:255'],
