@@ -317,6 +317,17 @@
             gap: 6px;
             flex-wrap: wrap;
         }
+        .admin-tag-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .admin-tag-pill {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 8px 12px;
+            background: rgba(255,255,255,0.92);
+        }
         .admin-subtabs {
             display: flex;
             gap: 8px;
@@ -408,26 +419,19 @@
         (() => {
             const tabLabels = {
                 products: 'Products',
-                orders: 'Orders',
-                customers: 'Customers',
-                tags: 'Tags',
-                admins: 'Admins',
-                activity: 'Activity',
-                visitors: 'Visitors',
-                analytics: 'Analytics',
-                batches: 'Batches',
-                settings: 'Settings',
-                health: 'Health',
             };
 
             const state = {
                 currentTab: 'products',
                 isSuperAdmin: @json($isSuperAdmin),
-                tabs: ['products', 'orders', 'customers', 'tags', 'admins', 'activity', 'visitors', 'analytics', 'batches', 'settings', 'health'],
+                tabs: ['products'],
                 products: [],
                 productsMeta: { current_page: 1, last_page: 1, total: 0 },
                 productSearch: '',
                 productIncludeArchived: true,
+                productTagSlugs: [],
+                productMinPrice: '',
+                productMaxPrice: '',
                 selectedProducts: new Set(),
                 selectionMode: false,
                 currentProduct: null,
@@ -548,48 +552,8 @@
                 try {
                     switch (state.currentTab) {
                         case 'products':
-                            await loadProducts();
+                            await Promise.all([loadProducts(), loadTags()]);
                             renderProducts();
-                            break;
-                        case 'orders':
-                            await loadOrders();
-                            renderOrders();
-                            break;
-                        case 'customers':
-                            await loadCustomers();
-                            renderCustomers();
-                            break;
-                        case 'tags':
-                            await loadTags();
-                            renderTags();
-                            break;
-                        case 'admins':
-                            await loadAdmins();
-                            renderAdmins();
-                            break;
-                        case 'activity':
-                            await loadActivity();
-                            renderActivity();
-                            break;
-                        case 'visitors':
-                            await loadVisitors();
-                            renderVisitors();
-                            break;
-                        case 'analytics':
-                            await loadAnalytics();
-                            renderAnalytics();
-                            break;
-                        case 'batches':
-                            await loadBatches();
-                            renderBatches();
-                            break;
-                        case 'settings':
-                            await loadSettings();
-                            renderSettings();
-                            break;
-                        case 'health':
-                            await loadHealth();
-                            renderHealth();
                             break;
                     }
                 } catch (error) {
@@ -605,6 +569,13 @@
                 if (state.productSearch.trim()) {
                     params.set('search', state.productSearch.trim());
                 }
+                if (state.productMinPrice) {
+                    params.set('min_price', state.productMinPrice);
+                }
+                if (state.productMaxPrice) {
+                    params.set('max_price', state.productMaxPrice);
+                }
+                state.productTagSlugs.forEach((tag) => params.append('tags[]', tag));
                 const response = await api(`/admin/products?${params.toString()}`);
                 state.products = response.data;
                 state.productsMeta = response;
@@ -780,6 +751,17 @@
                 }
             }
 
+            async function promptDownloadInstead(message, files) {
+                const shouldDownload = window.confirm(`${message} Do you want to download the photos instead?`);
+                if (!shouldDownload) {
+                    showStatus(message, true);
+                    return;
+                }
+
+                await downloadFilesToBrowser(files);
+                showStatus(`Downloaded ${files.length} image${files.length === 1 ? '' : 's'} instead.`);
+            }
+
             async function shareSelectedProductsWeb() {
                 const includeRateOverlay = chooseOverlayMode('Share');
                 const files = await prepareShareFiles(includeRateOverlay);
@@ -798,14 +780,16 @@
                         showStatus('Share sheet opened.');
                         return;
                     } catch (error) {
-                        await downloadFilesToBrowser(files);
-                        showStatus('Direct sharing was blocked by this browser, so the images were downloaded instead.');
+                        if (error?.name === 'AbortError') {
+                            showStatus('Share was cancelled.', true);
+                            return;
+                        }
+                        await promptDownloadInstead('Direct sharing was blocked by this browser.', files);
                         return;
                     }
                 }
 
-                await downloadFilesToBrowser(files);
-                showStatus('Your browser cannot share files directly here, so the images were downloaded instead.');
+                await promptDownloadInstead('Your browser cannot share these files directly here.', files);
             }
 
             async function downloadSelectedProductsWeb() {
@@ -818,6 +802,77 @@
 
                 await downloadFilesToBrowser(files);
                 showStatus(`Downloaded ${files.length} image${files.length === 1 ? '' : 's'}.`);
+            }
+
+            function renderProductFiltersModal() {
+                return `
+                    <div class="admin-modal-header">
+                        <div>
+                            <h2>Filter Products</h2>
+                            <div class="admin-meta">Control the product list and customer link.</div>
+                        </div>
+                        <button class="btn-secondary" id="closeAdminModalButton">Close</button>
+                    </div>
+                    <div class="admin-modal-grid">
+                        <div class="field">
+                            <label>Minimum rate</label>
+                            <input id="filterMinPriceInput" type="number" min="0" step="0.01" value="${escapeHtml(state.productMinPrice)}">
+                        </div>
+                        <div class="field">
+                            <label>Maximum rate</label>
+                            <input id="filterMaxPriceInput" type="number" min="0" step="0.01" value="${escapeHtml(state.productMaxPrice)}">
+                        </div>
+                        <div class="field full">
+                            <label>Tags</label>
+                            <div class="admin-tag-grid">
+                                ${state.tags.map((tag) => `
+                                    <label class="admin-selection admin-tag-pill">
+                                        <input type="checkbox" class="filter-tag-checkbox" value="${escapeHtml(tag.slug)}" ${state.productTagSlugs.includes(tag.slug) ? 'checked' : ''}>
+                                        ${escapeHtml(tag.name)}
+                                    </label>
+                                `).join('') || '<span class="admin-meta">No tags available yet.</span>'}
+                            </div>
+                        </div>
+                        <div class="field full">
+                            <label class="admin-selection">
+                                <input type="checkbox" id="filterArchivedInput" ${state.productIncludeArchived ? 'checked' : ''}>
+                                Show archived products too
+                            </label>
+                        </div>
+                    </div>
+                    <div class="admin-actions">
+                        <button class="btn-primary" id="applyProductFiltersButton">Apply Filters</button>
+                        <button class="btn-secondary" id="clearProductFiltersButton">Clear Filters</button>
+                    </div>
+                `;
+            }
+
+            function productCatalogUrl() {
+                const url = new URL('/catalog', window.location.origin);
+                if (state.productSearch.trim()) {
+                    url.searchParams.set('search', state.productSearch.trim());
+                }
+                if (state.productMinPrice) {
+                    url.searchParams.set('min_price', state.productMinPrice);
+                }
+                if (state.productMaxPrice) {
+                    url.searchParams.set('max_price', state.productMaxPrice);
+                }
+                if (state.productIncludeArchived) {
+                    url.searchParams.set('include_archived', '1');
+                }
+                state.productTagSlugs.forEach((tag) => url.searchParams.append('tags[]', tag));
+                return url.toString();
+            }
+
+            async function shareCustomerFilterLink() {
+                const link = productCatalogUrl();
+                try {
+                    await navigator.clipboard.writeText(link);
+                    showStatus('Customer filter link copied.');
+                } catch (error) {
+                    window.prompt('Copy this customer link:', link);
+                }
             }
 
             function renderProducts() {
@@ -833,6 +888,8 @@
                                 Show archived
                             </label>
                             <button class="btn-secondary" id="productSearchButton">Search</button>
+                            <button class="btn-secondary" id="productFilterButton">Filters</button>
+                            <button class="btn-secondary" id="productCustomerLinkButton">Customer Link</button>
                             <button class="btn-secondary" id="productRefreshButton">Refresh</button>
                         </div>
                         <div class="admin-toolbar-row">
@@ -841,7 +898,7 @@
                                 Selection mode
                             </label>
                             <span class="admin-meta">Showing ${state.products.length} / ${state.productsMeta.total} products</span>
-                            <span class="admin-meta">Page ${state.productsMeta.current_page} / ${state.productsMeta.last_page}</span>
+                            ${(state.productTagSlugs.length || state.productMinPrice || state.productMaxPrice || state.productSearch.trim()) ? `<span class="admin-meta">Filtered view active</span>` : ''}
                             ${state.selectionMode ? `
                                 <button class="btn-secondary" id="bulkShareButton">Share</button>
                                 <button class="btn-secondary" id="bulkDownloadButton">Download</button>
@@ -1536,6 +1593,16 @@
                     return;
                 }
 
+                if (event.target.id === 'productFilterButton') {
+                    openModal(renderProductFiltersModal());
+                    return;
+                }
+
+                if (event.target.id === 'productCustomerLinkButton') {
+                    await shareCustomerFilterLink();
+                    return;
+                }
+
                 if (event.target.id === 'productRefreshButton') {
                     await loadProducts();
                     renderProducts();
@@ -1636,6 +1703,28 @@
                     } catch (error) {
                         showStatus(error.message, true);
                     }
+                    return;
+                }
+
+                if (event.target.id === 'applyProductFiltersButton') {
+                    state.productMinPrice = document.getElementById('filterMinPriceInput').value.trim();
+                    state.productMaxPrice = document.getElementById('filterMaxPriceInput').value.trim();
+                    state.productIncludeArchived = document.getElementById('filterArchivedInput').checked;
+                    state.productTagSlugs = Array.from(document.querySelectorAll('.filter-tag-checkbox:checked')).map((input) => input.value);
+                    closeModal();
+                    await loadProducts();
+                    renderProducts();
+                    return;
+                }
+
+                if (event.target.id === 'clearProductFiltersButton') {
+                    state.productMinPrice = '';
+                    state.productMaxPrice = '';
+                    state.productTagSlugs = [];
+                    state.productIncludeArchived = true;
+                    closeModal();
+                    await loadProducts();
+                    renderProducts();
                     return;
                 }
 

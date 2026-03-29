@@ -184,6 +184,42 @@
         return params;
     }
 
+    function syncCatalogUrl() {
+        const params = buildProductParams();
+        const query = params.toString();
+        const target = query ? `/catalog?${query}` : '/catalog';
+        window.history.replaceState({}, '', target);
+    }
+
+    function applyQueryFilters() {
+        const params = new URLSearchParams(window.location.search);
+        const querySearch = params.get('search') || '';
+        const querySort = params.get('sort') || '';
+        const queryMinPrice = params.get('min_price') || '';
+        const queryMaxPrice = params.get('max_price') || '';
+        const queryShowArchive = params.get('include_archived') === '1';
+        const queryTags = params.getAll('tags[]').filter(Boolean);
+        const hasQueryFilters = querySearch || querySort || queryMinPrice || queryMaxPrice || queryShowArchive || queryTags.length;
+
+        if (!hasQueryFilters) {
+            return false;
+        }
+
+        restoringCatalogState = true;
+        document.getElementById('searchFilter').value = querySearch;
+        document.getElementById('sortFilter').value = querySort;
+        document.getElementById('minPriceFilter').value = queryMinPrice;
+        document.getElementById('maxPriceFilter').value = queryMaxPrice;
+        document.getElementById('showArchiveFilter').checked = queryShowArchive;
+        selectedTagSlugs = queryTags;
+
+        document.querySelectorAll('#tagFilterList input[type="checkbox"]').forEach(input => {
+            input.checked = selectedTagSlugs.includes(input.value);
+        });
+
+        return true;
+    }
+
     function syncCatalogView() {
         const results = document.getElementById('catalogResults');
         const empty = document.getElementById('catalogEmpty');
@@ -235,6 +271,7 @@
 
         catalogLoading = false;
         syncCatalogView();
+        syncCatalogUrl();
         saveCatalogState();
 
         if (reset) {
@@ -307,6 +344,12 @@
     }, { passive: true });
 
     async function restoreCatalogStateIfNeeded() {
+        if (applyQueryFilters()) {
+            await loadProducts(true);
+            restoringCatalogState = false;
+            return;
+        }
+
         const state = window.scakCatalogState?.read();
 
         if (!state) {
