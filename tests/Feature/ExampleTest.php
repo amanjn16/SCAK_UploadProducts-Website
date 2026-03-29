@@ -179,6 +179,25 @@ class ExampleTest extends TestCase
             ->assertJsonMissingPath('data.remarks');
     }
 
+    public function test_admin_can_view_app_release_metadata(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'phone' => '+919999999999',
+            'role' => User::ROLE_SUPER_ADMIN,
+            'phone_verified_at' => now(),
+            'approved_at' => now(),
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/admin/settings/app-releases')
+            ->assertOk()
+            ->assertJsonPath('data.android.platform', 'android')
+            ->assertJsonPath('data.ios.platform', 'ios');
+    }
+
     public function test_admin_can_hard_delete_product_and_images(): void
     {
         Storage::fake('products');

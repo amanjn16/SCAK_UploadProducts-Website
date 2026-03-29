@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\FilterController;
 use App\Http\Controllers\Api\OrderRequestController as CustomerOrderRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Web\AuthController;
+use App\Http\Controllers\Web\AppDownloadsController;
 use App\Http\Controllers\Web\ProductImageController;
 use App\Http\Controllers\Web\ProductPdfController;
 use App\Http\Controllers\Web\StorefrontController;
@@ -32,3 +33,11 @@ Route::middleware(['track.visitor'])->group(function (): void {
 Route::middleware(['customer.auth'])->group(function (): void {
     Route::post('/order-requests', [CustomerOrderRequestController::class, 'store'])->name('order-requests.store');
 });
+
+Route::middleware(['customer.auth', 'admin.role'])->group(function (): void {
+    Route::get('/apps', [AppDownloadsController::class, 'index'])->name('apps.index');
+});
+
+Route::get('/apps/download/{platform}', [AppDownloadsController::class, 'download'])
+    ->middleware('signed')
+    ->name('apps.download');

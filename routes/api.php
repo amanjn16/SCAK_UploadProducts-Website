@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Admin\ActivityLogController;
+use App\Http\Controllers\Api\Admin\AppReleaseController;
 use App\Http\Controllers\Api\Admin\CustomerController;
 use App\Http\Controllers\Api\Admin\GeneratedExportController;
 use App\Http\Controllers\Api\Admin\LegacyAnalyticsController;
@@ -58,6 +59,7 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::get('/system-health', [SystemHealthController::class, 'show']);
     Route::get('/settings/storefront', [StorefrontSettingsController::class, 'show']);
     Route::patch('/settings/storefront', [StorefrontSettingsController::class, 'update']);
+    Route::get('/settings/app-releases', [AppReleaseController::class, 'show']);
 });
 
 Route::middleware(['auth:sanctum', 'admin.role', 'super.admin'])->prefix('admin')->group(function (): void {
@@ -66,4 +68,5 @@ Route::middleware(['auth:sanctum', 'admin.role', 'super.admin'])->prefix('admin'
     Route::delete('/product-batches/{month}', [ProductBatchController::class, 'destroy']);
     Route::post('/admin-users', [AdminUserController::class, 'store']);
     Route::delete('/admin-users/{user}', [AdminUserController::class, 'destroy']);
+    Route::patch('/settings/app-releases', [AppReleaseController::class, 'update']);
 });
