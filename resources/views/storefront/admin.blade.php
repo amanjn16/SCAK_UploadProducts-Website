@@ -510,15 +510,15 @@
                 if (state.productSearch.trim()) {
                     params.set('search', state.productSearch.trim());
                 }
-                const response = await api(`/api/admin/products?${params.toString()}`);
+                const response = await api(`/admin/products?${params.toString()}`);
                 state.products = response.data;
                 state.productsMeta = response;
             }
 
             async function loadOrders() {
                 const [active, archived] = await Promise.all([
-                    api('/api/admin/order-requests?is_archived=0&page=1&per_page=50'),
-                    api('/api/admin/order-requests?is_archived=1&page=1&per_page=50'),
+                    api('/admin/order-requests?is_archived=0&page=1&per_page=50'),
+                    api('/admin/order-requests?is_archived=1&page=1&per_page=50'),
                 ]);
                 state.orders.active = active.data;
                 state.orders.archived = archived.data;
@@ -529,55 +529,55 @@
                 if (state.customerSearch.trim()) {
                     params.set('search', state.customerSearch.trim());
                 }
-                const response = await api(`/api/admin/customers?${params.toString()}`);
+                const response = await api(`/admin/customers?${params.toString()}`);
                 state.customers = response.data;
                 state.customerMeta = response;
             }
 
             async function loadTags() {
-                const response = await api('/api/admin/tags');
+                const response = await api('/admin/tags');
                 state.tags = response.data;
             }
 
             async function loadAdmins() {
-                const response = await api('/api/admin/admin-users');
+                const response = await api('/admin/admin-users');
                 state.admins = response.data;
             }
 
             async function loadActivity(page = 1) {
-                const response = await api(`/api/admin/activity-logs?page=${page}&per_page=25`);
+                const response = await api(`/admin/activity-logs?page=${page}&per_page=25`);
                 state.activity = response.data;
                 state.activityMeta = response;
             }
 
             async function loadVisitors(page = 1) {
-                const response = await api(`/api/admin/visitor-sessions?page=${page}&per_page=25`);
+                const response = await api(`/admin/visitor-sessions?page=${page}&per_page=25`);
                 state.visitors = response.data;
                 state.visitorMeta = response;
             }
 
             async function loadAnalytics(page = 1) {
-                const response = await api(`/api/admin/legacy-analytics?page=${page}&per_page=25`);
+                const response = await api(`/admin/legacy-analytics?page=${page}&per_page=25`);
                 state.analytics = response.data;
                 state.analyticsMeta = response;
             }
 
             async function loadBatches() {
-                const response = await api('/api/admin/product-batches');
+                const response = await api('/admin/product-batches');
                 state.batches = response.data;
             }
 
             async function loadSettings() {
                 const [settings, releases] = await Promise.all([
-                    api('/api/admin/settings/storefront'),
-                    api('/api/admin/settings/app-releases'),
+                    api('/admin/settings/storefront'),
+                    api('/admin/settings/app-releases'),
                 ]);
                 state.settings = settings.data;
                 state.releases = releases.data;
             }
 
             async function loadHealth() {
-                const response = await api('/api/admin/system-health');
+                const response = await api('/admin/system-health');
                 state.health = response.data;
             }
 
@@ -650,7 +650,7 @@
                 }
 
                 showStatus('Preparing selected product images...');
-                const response = await api('/api/admin/products/share-images', {
+                const response = await api('/admin/products/share-images', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1129,7 +1129,7 @@
                 try {
                     let product = null;
                     if (productId) {
-                        const response = await api(`/api/admin/products/${productId}`);
+                        const response = await api(`/admin/products/${productId}`);
                         product = response.data;
                     }
 
@@ -1232,12 +1232,12 @@
                 }
 
                 const response = product
-                    ? await api(`/api/admin/products/${product.id}`, {
+                    ? await api(`/admin/products/${product.id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
                     })
-                    : await api('/api/admin/products', {
+                    : await api('/admin/products', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload),
@@ -1252,7 +1252,7 @@
                     const formData = new FormData();
                     Array.from(imageInput.files).forEach((file) => formData.append('images[]', file));
                     formData.append('cover_index', '0');
-                    await api(`/api/admin/products/${savedProduct.id}/images`, {
+                    await api(`/admin/products/${savedProduct.id}/images`, {
                         method: 'POST',
                         body: formData,
                     });
@@ -1260,12 +1260,12 @@
 
                 const pdfInput = document.getElementById('productPdfInput');
                 if (document.getElementById('productRemovePdfInput')?.checked) {
-                    await api(`/api/admin/products/${savedProduct.id}/pdf`, { method: 'DELETE' });
+                    await api(`/admin/products/${savedProduct.id}/pdf`, { method: 'DELETE' });
                 }
                 if (pdfInput?.files?.[0]) {
                     const pdfData = new FormData();
                     pdfData.append('pdf', pdfInput.files[0]);
-                    await api(`/api/admin/products/${savedProduct.id}/pdf`, {
+                    await api(`/admin/products/${savedProduct.id}/pdf`, {
                         method: 'POST',
                         body: pdfData,
                     });
@@ -1330,7 +1330,7 @@
             }
 
             async function openCustomerDetail(customerId) {
-                const response = await api(`/api/admin/customers/${customerId}`);
+                const response = await api(`/admin/customers/${customerId}`);
                 const customer = response.data;
                 openModal(`
                     <div class="admin-modal-header">
@@ -1373,14 +1373,14 @@
 
             async function saveSettings() {
                 const settingsPayload = buildSettingsPayload();
-                await api('/api/admin/settings/storefront', {
+                await api('/admin/settings/storefront', {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(settingsPayload),
                 });
 
                 if (state.isSuperAdmin) {
-                    await api('/api/admin/settings/app-releases', {
+                    await api('/admin/settings/app-releases', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1461,7 +1461,7 @@
                 }
 
                 if (event.target.id === 'bulkActivateButton') {
-                    await api('/api/admin/products/bulk-status', {
+                    await api('/admin/products/bulk-status', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ product_ids: Array.from(state.selectedProducts), status: 'active' }),
@@ -1475,7 +1475,7 @@
                 }
 
                 if (event.target.id === 'bulkArchiveButton') {
-                    await api('/api/admin/products/bulk-status', {
+                    await api('/admin/products/bulk-status', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ product_ids: Array.from(state.selectedProducts), status: 'archived' }),
@@ -1507,7 +1507,7 @@
                 }
 
                 if (event.target.id === 'bulkDeleteButton') {
-                    await api('/api/admin/products/bulk-delete', {
+                    await api('/admin/products/bulk-delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ product_ids: Array.from(state.selectedProducts) }),
@@ -1536,7 +1536,7 @@
 
                 if (event.target.id === 'deleteProductButton' && state.currentProduct) {
                     if (!confirm('Delete this product and all its images?')) return;
-                    await api(`/api/admin/products/${state.currentProduct.id}`, { method: 'DELETE' });
+                    await api(`/admin/products/${state.currentProduct.id}`, { method: 'DELETE' });
                     showStatus('Product deleted.');
                     closeModal();
                     await loadProducts();
@@ -1546,7 +1546,7 @@
 
                 const deleteImageButton = event.target.closest('.delete-image-button');
                 if (deleteImageButton && state.currentProduct) {
-                    await api(`/api/admin/products/${state.currentProduct.id}/images/${deleteImageButton.dataset.imageId}`, { method: 'DELETE' });
+                    await api(`/admin/products/${state.currentProduct.id}/images/${deleteImageButton.dataset.imageId}`, { method: 'DELETE' });
                     await openProductEditor(state.currentProduct.id);
                     showStatus('Image deleted.');
                     return;
@@ -1583,7 +1583,7 @@
 
                 if (event.target.id === 'saveOrderButton') {
                     const orderId = Number(event.target.dataset.orderId);
-                    await api(`/api/admin/order-requests/${orderId}`, {
+                    await api(`/admin/order-requests/${orderId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1614,7 +1614,7 @@
 
                 if (event.target.id === 'createTagButton') {
                     const input = document.getElementById('newTagInput');
-                    await api('/api/admin/tags', {
+                    await api('/admin/tags', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name: input.value.trim() }),
@@ -1630,7 +1630,7 @@
                 if (saveTagButton) {
                     const tagId = Number(saveTagButton.dataset.tagId);
                     const input = elements.content.querySelector(`[data-tag-edit-id="${tagId}"]`);
-                    await api(`/api/admin/tags/${tagId}`, {
+                    await api(`/admin/tags/${tagId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name: input.value.trim() }),
@@ -1643,7 +1643,7 @@
 
                 const deleteTagButton = event.target.closest('.delete-tag-button');
                 if (deleteTagButton) {
-                    await api(`/api/admin/tags/${deleteTagButton.dataset.tagId}`, { method: 'DELETE' });
+                    await api(`/admin/tags/${deleteTagButton.dataset.tagId}`, { method: 'DELETE' });
                     showStatus('Tag deleted.');
                     await loadTags();
                     renderTags();
@@ -1651,7 +1651,7 @@
                 }
 
                 if (event.target.id === 'saveAdminButton') {
-                    await api('/api/admin/admin-users', {
+                    await api('/admin/admin-users', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -1670,7 +1670,7 @@
 
                 const deleteAdminButton = event.target.closest('.delete-admin-button');
                 if (deleteAdminButton) {
-                    await api(`/api/admin/admin-users/${deleteAdminButton.dataset.adminId}`, { method: 'DELETE' });
+                    await api(`/admin/admin-users/${deleteAdminButton.dataset.adminId}`, { method: 'DELETE' });
                     showStatus('Admin removed.');
                     await loadAdmins();
                     renderAdmins();
@@ -1680,7 +1680,7 @@
                 const deleteBatchButton = event.target.closest('.delete-batch-button');
                 if (deleteBatchButton) {
                     if (!confirm('Delete this month and all associated products?')) return;
-                    await api(`/api/admin/product-batches/${deleteBatchButton.dataset.month}`, { method: 'DELETE' });
+                    await api(`/admin/product-batches/${deleteBatchButton.dataset.month}`, { method: 'DELETE' });
                     showStatus('Batch deleted.');
                     await loadBatches();
                     renderBatches();
@@ -1720,4 +1720,5 @@
         })();
     </script>
 @endpush
+
 
