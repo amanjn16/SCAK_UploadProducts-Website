@@ -3,25 +3,39 @@
 @section('content')
     <section class="admin-shell panel">
         <div class="admin-header">
-            <div>
-                <div class="back-link">
-                    <a href="{{ route('catalog') }}" class="pill">Back To Catalog</a>
-                    <a href="{{ route('apps.index') }}" class="pill">Apps</a>
-                </div>
-                <h1>Admin Web App</h1>
-                <p>Use this responsive panel on iPhone or desktop to manage the same catalog, orders, insights, and settings as the Android app.</p>
+            <button class="btn-secondary icon-btn admin-menu-button" id="adminMenuButton" aria-label="Open admin menu">
+                &#9776;
+            </button>
+            <div class="admin-heading">
+                <h1 id="adminCurrentTitle">Products</h1>
+                <span class="admin-subtle">Web admin</span>
             </div>
             <div class="admin-user">
                 <strong>{{ $customer?->name }}</strong>
-                <span>{{ $customer?->phone }}</span>
                 <span>{{ $customer?->role }}</span>
             </div>
         </div>
 
-        <div class="admin-tabs" id="adminTabs"></div>
         <div class="admin-status" id="adminStatus"></div>
         <div class="admin-content" id="adminContent"></div>
     </section>
+
+    <div class="admin-drawer-shell" id="adminDrawerShell" hidden>
+        <aside class="admin-drawer panel">
+            <div class="admin-drawer-head">
+                <div>
+                    <strong>Admin Menu</strong>
+                    <div class="admin-meta">{{ $customer?->phone }}</div>
+                </div>
+                <button class="btn-secondary" id="closeAdminDrawerButton">Close</button>
+            </div>
+            <div class="admin-drawer-links" id="adminTabs"></div>
+            <div class="admin-drawer-links admin-drawer-links-secondary">
+                <a href="{{ route('catalog') }}" class="admin-drawer-link">Back To Catalog</a>
+                <a href="{{ route('apps.index') }}" class="admin-drawer-link">Apps</a>
+            </div>
+        </aside>
+    </div>
 
     <div class="admin-modal-shell" id="adminModalShell" hidden>
         <div class="admin-modal panel" id="adminModal"></div>
@@ -31,46 +45,87 @@
 @push('head')
     <style>
         .admin-shell {
-            padding: 24px;
+            padding: 18px;
             display: grid;
-            gap: 20px;
+            gap: 16px;
         }
         .admin-header {
             display: flex;
-            justify-content: space-between;
-            gap: 18px;
-            align-items: flex-start;
+            align-items: center;
+            gap: 14px;
         }
         .admin-header h1 {
-            margin: 0 0 10px;
-            font-size: clamp(1.8rem, 3vw, 2.8rem);
-        }
-        .admin-header p {
             margin: 0;
-            max-width: 58rem;
+            font-size: clamp(1.45rem, 2.4vw, 2.2rem);
+        }
+        .admin-heading {
+            display: grid;
+            gap: 2px;
+            min-width: 0;
+            flex: 1;
+        }
+        .admin-subtle {
             color: #6d5842;
+            font-size: 0.85rem;
         }
         .admin-user {
             display: grid;
-            gap: 6px;
-            min-width: 180px;
+            gap: 2px;
+            min-width: 110px;
             justify-items: end;
             color: #6d5842;
-            font-size: 0.9rem;
+            font-size: 0.82rem;
         }
-        .admin-tabs {
+        .admin-menu-button {
+            width: 46px;
+            height: 46px;
+            font-size: 1.25rem;
+            flex: 0 0 auto;
+        }
+        .admin-drawer-shell {
+            position: fixed;
+            inset: 0;
+            background: rgba(31, 42, 55, 0.3);
+            backdrop-filter: blur(4px);
+            z-index: 45;
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
         }
+        .admin-drawer-shell[hidden] {
+            display: none !important;
+        }
+        .admin-drawer {
+            width: min(320px, calc(100vw - 24px));
+            border-radius: 0 24px 24px 0;
+            padding: 18px;
+            display: grid;
+            gap: 14px;
+            max-height: 100dvh;
+            overflow: auto;
+        }
+        .admin-drawer-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .admin-drawer-links {
+            display: grid;
+            gap: 10px;
+        }
+        .admin-drawer-links-secondary {
+            padding-top: 10px;
+            border-top: 1px solid var(--line);
+        }
+        .admin-drawer-link,
         .admin-tab {
             border: 1px solid var(--line);
             background: white;
             color: var(--ink);
-            border-radius: 999px;
-            padding: 10px 14px;
+            border-radius: 16px;
+            padding: 12px 14px;
             cursor: pointer;
             font-weight: 600;
+            text-align: left;
         }
         .admin-tab.active {
             background: var(--accent);
@@ -108,18 +163,18 @@
             gap: 16px;
         }
         .admin-grid.products {
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
         }
         .admin-card {
             background: rgba(255,255,255,0.92);
             border: 1px solid var(--line);
             border-radius: 20px;
-            padding: 16px;
+            padding: 12px;
             display: grid;
-            gap: 12px;
+            gap: 8px;
         }
         .admin-card.compact {
-            gap: 8px;
+            gap: 6px;
         }
         .admin-card img {
             width: 100%;
@@ -136,12 +191,12 @@
         }
         .admin-card-title {
             margin: 0;
-            font-size: 1.05rem;
-            line-height: 1.25;
+            font-size: 0.95rem;
+            line-height: 1.15;
         }
         .admin-meta {
             color: #6d5842;
-            font-size: 0.9rem;
+            font-size: 0.83rem;
         }
         .admin-actions {
             display: flex;
@@ -303,10 +358,10 @@
         }
         @media (max-width: 900px) {
             .admin-header {
-                flex-direction: column;
+                align-items: center;
             }
             .admin-user {
-                justify-items: start;
+                justify-items: end;
             }
             .admin-modal-grid {
                 grid-template-columns: 1fr;
@@ -316,6 +371,34 @@
                 overflow-x: auto;
                 white-space: nowrap;
             }
+            .admin-grid.products {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+            .admin-shell {
+                padding: 14px;
+            }
+            .admin-header h1 {
+                font-size: 1.8rem;
+            }
+            .admin-user {
+                font-size: 0.74rem;
+                min-width: 80px;
+            }
+            .admin-toolbar {
+                gap: 10px;
+            }
+            .admin-toolbar-row {
+                gap: 8px;
+            }
+            .admin-toolbar-row .field {
+                flex: 1 1 100%;
+            }
+            .admin-actions button,
+            .admin-toolbar button,
+            .admin-selection {
+                font-size: 0.82rem;
+            }
         }
     </style>
 @endpush
@@ -323,6 +406,20 @@
 @push('scripts')
     <script>
         (() => {
+            const tabLabels = {
+                products: 'Products',
+                orders: 'Orders',
+                customers: 'Customers',
+                tags: 'Tags',
+                admins: 'Admins',
+                activity: 'Activity',
+                visitors: 'Visitors',
+                analytics: 'Analytics',
+                batches: 'Batches',
+                settings: 'Settings',
+                health: 'Health',
+            };
+
             const state = {
                 currentTab: 'products',
                 isSuperAdmin: @json($isSuperAdmin),
@@ -357,6 +454,8 @@
                 tabs: document.getElementById('adminTabs'),
                 content: document.getElementById('adminContent'),
                 status: document.getElementById('adminStatus'),
+                currentTitle: document.getElementById('adminCurrentTitle'),
+                drawerShell: document.getElementById('adminDrawerShell'),
                 modalShell: document.getElementById('adminModalShell'),
                 modal: document.getElementById('adminModal'),
             };
@@ -422,31 +521,27 @@
             }
 
             function renderTabs() {
-                const labels = {
-                    products: 'Products',
-                    orders: 'Orders',
-                    customers: 'Customers',
-                    tags: 'Tags',
-                    admins: 'Admins',
-                    activity: 'Activity',
-                    visitors: 'Visitors',
-                    analytics: 'Analytics',
-                    batches: 'Batches',
-                    settings: 'Settings',
-                    health: 'Health',
-                };
-
                 elements.tabs.innerHTML = state.tabs.map((tab) => `
                     <button class="admin-tab ${state.currentTab === tab ? 'active' : ''}" data-tab="${tab}">
-                        ${labels[tab]}
+                        ${tabLabels[tab]}
                     </button>
                 `).join('');
+                elements.currentTitle.textContent = tabLabels[state.currentTab] || 'Admin';
             }
 
             async function setTab(tab) {
                 state.currentTab = tab;
                 renderTabs();
+                closeDrawer();
                 await loadCurrentTab();
+            }
+
+            function openDrawer() {
+                elements.drawerShell.hidden = false;
+            }
+
+            function closeDrawer() {
+                elements.drawerShell.hidden = true;
             }
 
             async function loadCurrentTab() {
@@ -694,13 +789,19 @@
                 }
 
                 if (navigator.share && navigator.canShare && navigator.canShare({ files })) {
-                    await navigator.share({
-                        files,
-                        title: 'SCAK Product Images',
-                        text: 'Shared from SCAK admin web app.',
-                    });
-                    showStatus('Share sheet opened.');
-                    return;
+                    try {
+                        await navigator.share({
+                            files,
+                            title: 'SCAK Product Images',
+                            text: 'Shared from SCAK admin web app.',
+                        });
+                        showStatus('Share sheet opened.');
+                        return;
+                    } catch (error) {
+                        await downloadFilesToBrowser(files);
+                        showStatus('Direct sharing was blocked by this browser, so the images were downloaded instead.');
+                        return;
+                    }
                 }
 
                 await downloadFilesToBrowser(files);
@@ -733,7 +834,6 @@
                             </label>
                             <button class="btn-secondary" id="productSearchButton">Search</button>
                             <button class="btn-secondary" id="productRefreshButton">Refresh</button>
-                            <button class="btn-primary" id="productNewButton">New Product</button>
                         </div>
                         <div class="admin-toolbar-row">
                             <label class="admin-selection">
@@ -1411,6 +1511,16 @@
                     return;
                 }
 
+                if (event.target.id === 'adminMenuButton') {
+                    openDrawer();
+                    return;
+                }
+
+                if (event.target.id === 'closeAdminDrawerButton') {
+                    closeDrawer();
+                    return;
+                }
+
                 const orderMode = event.target.closest('[data-order-mode]')?.dataset.orderMode;
                 if (orderMode) {
                     state.orderMode = orderMode;
@@ -1429,11 +1539,6 @@
                 if (event.target.id === 'productRefreshButton') {
                     await loadProducts();
                     renderProducts();
-                    return;
-                }
-
-                if (event.target.id === 'productNewButton') {
-                    await openProductEditor();
                     return;
                 }
 
@@ -1712,6 +1817,12 @@
             elements.modalShell.addEventListener('click', (event) => {
                 if (event.target === elements.modalShell) {
                     closeModal();
+                }
+            });
+
+            elements.drawerShell.addEventListener('click', (event) => {
+                if (event.target === elements.drawerShell) {
+                    closeDrawer();
                 }
             });
 
