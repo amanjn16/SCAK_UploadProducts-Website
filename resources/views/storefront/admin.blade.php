@@ -578,6 +578,144 @@
                 state.health = response.data;
             }
 
+            function chooseOverlayMode(actionLabel) {
+                return window.confirm(`Include rates on images for ${actionLabel.toLowerCase()}? Click OK for rates, Cancel for plain images.`);
+            }
+
+            function rateLabel(price) {
+                const amount = Number(price || 0);
+                return Number.isInteger(amount) ? `Rs. ${amount}` : `Rs. ${amount.toFixed(2)}`;
+            }
+
+            function shareExportEntries(products) {
+                return products.flatMap((product) =>
+                    (product.images || []).map((image, index) => ({
+                        productName: product.name,
+                        price: product.price,
+                        url: image.url,
+                        filename: `${product.name || 'product'}-${String(index + 1).padStart(2, '0')}.jpg`,
+                    }))
+                );
+            }
+
+            async function loadImageBlob(url) {
+                const response = await fetch(url, { credentials: 'same-origin' });
+                if (!response.ok) {
+                    throw new Error(`Could not load image: ${url}`);
+                }
+
+                return await response.blob();
+            }
+
+            async function renderOverlayBlob(blob, price) {
+                const objectUrl = URL.createObjectURL(blob);
+                try {
+                    const image = await new Promise((resolve, reject) => {
+                        const element = new Image();
+                        element.onload = () => resolve(element);
+                        element.onerror = () => reject(new Error('Unable to render image for sharing.'));
+                        element.src = objectUrl;
+                    });
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.naturalWidth || image.width;
+                    canvas.height = image.naturalHeight || image.height;
+                    const context = canvas.getContext('2d');
+                    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+                    const barHeight = Math.max(56, Math.round(canvas.height * 0.075));
+                    const barY = canvas.height - barHeight - Math.max(12, Math.round(canvas.height * 0.02));
+                    context.fillStyle = 'rgba(42, 29, 20, 0.35)';
+                    context.fillRect(0, barY, canvas.width, barHeight);
+                    context.font = `600 ${Math.max(22, Math.round(canvas.width * 0.045))}px Arial`;
+                    context.fillStyle = '#ffffff';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'middle';
+                    context.fillText(rateLabel(price), canvas.width / 2, barY + barHeight / 2);
+
+                    return await new Promise((resolve, reject) => {
+                        canvas.toBlob((output) => output ? resolve(output) : reject(new Error('Unable to create share image.')), 'image/jpeg', 0.92);
+                    });
+                } finally {
+                    URL.revokeObjectURL(objectUrl);
+                }
+            }
+
+            async function prepareShareFiles(includeRateOverlay) {
+                if (!state.selectedProducts.size) {
+                    throw new Error('Select at least one product first.');
+                }
+
+                showStatus('Preparing selected product images...');
+                const response = await api('/admin/products/share-images', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_ids: Array.from(state.selectedProducts),
+                        include_rate_overlay: includeRateOverlay,
+                    }),
+                });
+
+                const entries = shareExportEntries(response.data || []);
+                const files = [];
+                for (const entry of entries) {
+                    const sourceBlob = await loadImageBlob(entry.url);
+                    const finalBlob = includeRateOverlay ? await renderOverlayBlob(sourceBlob, entry.price) : sourceBlob;
+                    files.push(new File([finalBlob], entry.filename, { type: finalBlob.type || 'image/jpeg' }));
+                }
+
+                return files;
+            }
+
+            async function downloadFilesToBrowser(files) {
+                for (const file of files) {
+                    const fileUrl = URL.createObjectURL(file);
+                    const anchor = document.createElement('a');
+                    anchor.href = fileUrl;
+                    anchor.download = file.name;
+                    anchor.rel = 'noopener';
+                    document.body.appendChild(anchor);
+                    anchor.click();
+                    anchor.remove();
+                    setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
+                    await new Promise((resolve) => setTimeout(resolve, 120));
+                }
+            }
+
+            async function shareSelectedProductsWeb() {
+                const includeRateOverlay = chooseOverlayMode('Share');
+                const files = await prepareShareFiles(includeRateOverlay);
+
+                if (!files.length) {
+                    throw new Error('No images found for the selected products.');
+                }
+
+                if (navigator.share && navigator.canShare && navigator.canShare({ files })) {
+                    await navigator.share({
+                        files,
+                        title: 'SCAK Product Images',
+                        text: 'Shared from SCAK admin web app.',
+                    });
+                    showStatus('Share sheet opened.');
+                    return;
+                }
+
+                await downloadFilesToBrowser(files);
+                showStatus('Your browser cannot share files directly here, so the images were downloaded instead.');
+            }
+
+            async function downloadSelectedProductsWeb() {
+                const includeRateOverlay = chooseOverlayMode('Download');
+                const files = await prepareShareFiles(includeRateOverlay);
+
+                if (!files.length) {
+                    throw new Error('No images found for the selected products.');
+                }
+
+                await downloadFilesToBrowser(files);
+                showStatus(`Downloaded ${files.length} image${files.length === 1 ? '' : 's'}.`);
+            }
+
             function renderProducts() {
                 elements.content.innerHTML = `
                     <div class="admin-toolbar">
@@ -602,6 +740,8 @@
                             <span class="admin-meta">Showing ${state.products.length} / ${state.productsMeta.total} products</span>
                             <span class="admin-meta">Page ${state.productsMeta.current_page} / ${state.productsMeta.last_page}</span>
                             ${state.selectionMode ? `
+                                <button class="btn-secondary" id="bulkShareButton">Share</button>
+                                <button class="btn-secondary" id="bulkDownloadButton">Download</button>
                                 <button class="btn-secondary" id="bulkActivateButton">Activate</button>
                                 <button class="btn-secondary" id="bulkArchiveButton">Archive</button>
                                 ${state.isSuperAdmin ? '<button class="btn-secondary" id="bulkDeleteButton">Delete</button>' : ''}
@@ -1342,6 +1482,24 @@
                     state.selectionMode = false;
                     await loadProducts();
                     renderProducts();
+                    return;
+                }
+
+                if (event.target.id === 'bulkShareButton') {
+                    try {
+                        await shareSelectedProductsWeb();
+                    } catch (error) {
+                        showStatus(error.message, true);
+                    }
+                    return;
+                }
+
+                if (event.target.id === 'bulkDownloadButton') {
+                    try {
+                        await downloadSelectedProductsWeb();
+                    } catch (error) {
+                        showStatus(error.message, true);
+                    }
                     return;
                 }
 
