@@ -212,6 +212,9 @@
             z-index: 50;
             padding: 16px;
         }
+        .admin-modal-shell[hidden] {
+            display: none !important;
+        }
         .admin-modal {
             width: min(960px, 100%);
             max-height: calc(100dvh - 32px);
