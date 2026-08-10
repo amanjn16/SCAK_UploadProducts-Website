@@ -18,6 +18,7 @@ class CatalogController extends Controller
     {
         $queryCallback = function () use ($request) {
             return Product::query()
+                ->whereHas('images')
                 ->select([
                     'id',
                     'name',
@@ -74,7 +75,10 @@ class CatalogController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        abort_unless($product->is_active || request()->boolean('include_archived'), 404);
+        abort_unless(
+            ($product->is_active || request()->boolean('include_archived')) && $product->images()->exists(),
+            404,
+        );
 
         $product->load([
             'tags:id,name,slug',

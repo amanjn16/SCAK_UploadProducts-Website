@@ -254,6 +254,8 @@ class ExampleTest extends TestCase
 
     public function test_product_remarks_are_visible_only_in_admin_api(): void
     {
+        Storage::fake('products');
+
         $admin = User::query()->create([
             'name' => 'Admin',
             'phone' => '+919999999999',
@@ -281,6 +283,19 @@ class ExampleTest extends TestCase
             'published_at' => now(),
         ]);
 
+        Storage::disk('products')->put('private-remark-suit/image.jpg', 'image');
+        $product->images()->create([
+            'disk' => 'products',
+            'path' => 'private-remark-suit/image.jpg',
+            'medium_path' => 'private-remark-suit/image.jpg',
+            'thumb_path' => 'private-remark-suit/image.jpg',
+            'original_name' => 'image.jpg',
+            'mime_type' => 'image/jpeg',
+            'bytes' => 5,
+            'sort_order' => 0,
+            'is_cover' => true,
+        ]);
+
         Sanctum::actingAs($admin);
 
         $this->getJson("/admin/products/{$product->id}")
@@ -290,6 +305,26 @@ class ExampleTest extends TestCase
         $this->getJson("/products/{$product->slug}")
             ->assertOk()
             ->assertJsonMissingPath('data.remarks');
+    }
+
+    public function test_public_catalog_hides_products_without_images(): void
+    {
+        $product = Product::query()->create([
+            'name' => 'Incomplete Suit',
+            'slug' => 'incomplete-suit',
+            'sku' => 'S2468',
+            'price' => 625,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        $this->getJson('/products')
+            ->assertOk()
+            ->assertJsonMissing(['id' => $product->id]);
+
+        $this->getJson("/products/{$product->slug}")
+            ->assertNotFound();
     }
 
     public function test_admin_can_view_app_release_metadata(): void
