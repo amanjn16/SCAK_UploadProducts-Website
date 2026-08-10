@@ -36,7 +36,7 @@ class ExampleTest extends TestCase
         $this->postJson('/auth/customer/verify-otp', ['phone' => '9876543210', 'code' => '1234'])->assertNotFound();
         $this->get('/admin')->assertRedirect('/catalog');
         $this->get('/login')->assertRedirect('/catalog');
-        $this->get('/apps')->assertRedirect('/catalog');
+        $this->get('/apps')->assertOk();
     }
 
     public function test_sale_catalog_sync_is_authenticated_and_idempotent(): void
