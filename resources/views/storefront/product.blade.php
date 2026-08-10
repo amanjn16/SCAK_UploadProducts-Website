@@ -97,7 +97,7 @@
                     $whatsappMessage = implode("\n", array_filter([
                         'Hello SCAK, I am interested in this product:',
                         $product->name,
-                        'Wholesale rate: Rs. '.((float) $product->price == floor((float) $product->price) ? number_format((float) $product->price, 0) : number_format((float) $product->price, 2)),
+                        'Price: Rs.'.((float) $product->price == floor((float) $product->price) ? number_format((float) $product->price, 0) : number_format((float) $product->price, 2)),
                         $product->sku ? 'SKU: '.$product->sku : null,
                         route('catalog.show', $product),
                     ]));

@@ -88,7 +88,7 @@
         const message = [
             'Hello SCAK, I am interested in this product:',
             product.name,
-            `Wholesale rate: Rs. ${formattedRate}`,
+            `Price: Rs.${formattedRate}`,
             product.sku ? `SKU: ${product.sku}` : '',
             productUrl,
         ].filter(Boolean).join('\n');
