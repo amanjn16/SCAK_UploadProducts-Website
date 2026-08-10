@@ -20,7 +20,7 @@ Route::post('/auth/customer/submit-phone', [CustomerAuthController::class, 'subm
 Route::middleware(['track.visitor'])->group(function (): void {
     Route::get('/catalog', [StorefrontController::class, 'catalog'])->name('catalog');
     Route::get('/catalog/{product:slug}', [StorefrontController::class, 'show'])->name('catalog.show');
-    Route::get('/cart', [StorefrontController::class, 'bucket'])->name('bucket');
+    Route::redirect('/cart', '/catalog')->name('bucket');
 
     Route::get('/products', [CatalogController::class, 'index'])->name('products.index');
     Route::get('/products/{product:slug}', [CatalogController::class, 'show'])->name('products.show');

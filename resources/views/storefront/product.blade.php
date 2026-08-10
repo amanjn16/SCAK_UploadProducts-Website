@@ -1,5 +1,15 @@
 @extends('layouts.app', ['title' => $product->name])
 
+@push('head')
+    <meta property="og:type" content="product">
+    <meta property="og:title" content="{{ $product->name }} - Rs. {{ number_format((float) $product->price, 2) }}">
+    <meta property="og:url" content="{{ route('catalog.show', $product) }}">
+    @if($product->cover_image_original_url)
+        <meta property="og:image" content="{{ $product->cover_image_original_url }}">
+    @endif
+    <meta property="og:description" content="Enquire with SCAK on WhatsApp for this product.">
+@endpush
+
 @section('content')
     <style>
         .product-detail-layout {
@@ -82,15 +92,17 @@
                     <a class="btn-secondary" href="{{ $product->pdf_url }}?download=1">Download PDF</a>
                 </div>
             @endif
-            <div class="tag-list">
-                @forelse($product->tags as $tag)
-                    <div class="pill">{{ $tag->name }}</div>
-                @empty
-                    <div class="pill">No tags</div>
-                @endforelse
-            </div>
             @if($product->is_active)
-                <button class="btn-primary" style="width: 100%; margin-top: 18px;" onclick="window.scakCart.add({{ $product->id }}); window.scakCatalogState.save(window.scakCatalogState.read() || { page: 1, scrollY: 0 }); window.location.href='{{ route('bucket') }}';">Add to Cart</button>
+                @php
+                    $whatsappMessage = implode("\n", array_filter([
+                        'Hello SCAK, I am interested in this product:',
+                        $product->name,
+                        'Wholesale rate: Rs. '.((float) $product->price == floor((float) $product->price) ? number_format((float) $product->price, 0) : number_format((float) $product->price, 2)),
+                        $product->sku ? 'SKU: '.$product->sku : null,
+                        route('catalog.show', $product),
+                    ]));
+                @endphp
+                <a class="btn btn-primary" style="display:block; width:100%; margin-top:18px; text-align:center;" href="https://wa.me/919350188297?text={{ rawurlencode($whatsappMessage) }}" target="_blank" rel="noopener">Enquire on WhatsApp</a>
             @else
                 <button class="btn-secondary" style="width: 100%; margin-top: 18px;" disabled>Archived items are view only</button>
             @endif

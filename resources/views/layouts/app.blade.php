@@ -8,7 +8,6 @@
         $brandAssetVersion = '20260327e';
         $brandLogoUrl = asset('assets/brand/scak-logo.png') . '?v=' . $brandAssetVersion;
         $brandFilterUrl = asset('assets/brand/filter.png') . '?v=' . $brandAssetVersion;
-        $brandCartUrl = asset('assets/brand/cart.png') . '?v=' . $brandAssetVersion;
         $brandWhatsappUrl = asset('assets/brand/whatsapp.svg') . '?v=' . $brandAssetVersion;
     @endphp
     <title>{{ $title ?? 'SCAK' }}</title>
@@ -272,7 +271,6 @@
             border: 1px solid rgba(159, 58, 34, 0.18);
         }
         .floating-filter-btn img,
-        .cart-chip img,
         .whatsapp-chip img {
             width: 26px;
             height: 26px;
@@ -282,23 +280,6 @@
         .whatsapp-chip img {
             width: 34px;
             height: 34px;
-        }
-        .cart-chip {
-            position: fixed;
-            right: 24px;
-            bottom: 88px;
-            z-index: 15;
-            min-width: 60px;
-            height: 60px;
-            padding: 0 18px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 14px 30px rgba(31, 42, 55, 0.18);
-            background: rgba(255,255,255,0.96) !important;
-            border: 1px solid rgba(159, 58, 34, 0.18);
-            color: var(--accent) !important;
         }
         .whatsapp-chip {
             position: fixed;
@@ -315,11 +296,6 @@
             background: rgba(255,255,255,0.96) !important;
             border: 1px solid rgba(159, 58, 34, 0.18);
             color: var(--accent) !important;
-        }
-        .cart-chip span {
-            color: var(--accent);
-            font-weight: 700;
-            min-width: 1ch;
         }
         .drawer-overlay {
             position: fixed;
@@ -464,7 +440,6 @@
                 padding: 8px 10px;
             }
             .floating-filter-btn,
-            .cart-chip,
             .whatsapp-chip {
                 right: 16px;
             }
@@ -512,8 +487,7 @@
     @include('partials.customer-otp-modal')
     <script>
         window.scak = {
-            csrfToken: document.querySelector('meta[name="csrf-token"]').content,
-            cartKey: 'scak_cart_v2'
+            csrfToken: document.querySelector('meta[name="csrf-token"]').content
         };
         window.scakCatalogState = {
             key: 'scak_catalog_state_v1',
@@ -538,38 +512,6 @@
                 window.location.href = fallbackUrl;
             }
         };
-
-        window.scakCart = {
-            get() {
-                try {
-                    return JSON.parse(localStorage.getItem(window.scak.cartKey) || '{}');
-                } catch (error) {
-                    return {};
-                }
-            },
-            save(data) {
-                localStorage.setItem(window.scak.cartKey, JSON.stringify(data));
-            },
-            add(productId, quantity = 1) {
-                const cart = this.get();
-                cart[productId] = (cart[productId] || 0) + quantity;
-                this.save(cart);
-                return cart;
-            },
-            remove(productId) {
-                const cart = this.get();
-                delete cart[productId];
-                this.save(cart);
-                return cart;
-            },
-            clear() {
-                localStorage.removeItem(window.scak.cartKey);
-            },
-            count() {
-                return Object.values(this.get()).reduce((sum, value) => sum + Number(value), 0);
-            }
-        };
-
 
         const topbar = document.querySelector('.topbar');
         let lastScrollY = window.scrollY;

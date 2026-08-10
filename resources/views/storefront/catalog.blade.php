@@ -9,7 +9,7 @@
             </div>
             <div class="field" style="margin-top: 14px;">
                 <label>Search</label>
-                <input id="searchFilter" placeholder="Search by title, SKU, or tag">
+                <input id="searchFilter" placeholder="Search by title or SKU">
             </div>
         </div>
         <div id="catalogResults"></div>
@@ -28,10 +28,6 @@
             <button class="btn-secondary" id="closeFilterDrawer" type="button">Close</button>
         </div>
         <div class="drawer-body">
-            <div class="field">
-                <label>Tags</label>
-                <div id="tagFilterList" class="tag-list"></div>
-            </div>
             <div class="field">
                 <label>Minimum rate</label>
                 <input id="minPriceFilter" inputmode="numeric" placeholder="0">
@@ -57,10 +53,6 @@
             <button class="btn-secondary" id="clearFiltersButton" type="button">Clear Filters</button>
         </div>
     </aside>
-    <a class="btn-primary cart-chip" href="{{ route('bucket') }}" id="cartChip" aria-label="Open cart">
-            <img src="{{ $brandCartUrl ?? (asset('assets/brand/cart.png') . '?v=20260327d') }}" alt="">
-        <span>0</span>
-    </a>
     <a class="btn-primary whatsapp-chip" href="https://wa.me/919350188297?text={{ rawurlencode(config('scak.support.whatsapp_message')) }}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
             <img src="{{ $brandWhatsappUrl ?? (asset('assets/brand/whatsapp.svg') . '?v=20260327e') }}" alt="">
     </a>
@@ -74,7 +66,6 @@
     let catalogTotal = 0;
     let catalogLoading = false;
     let catalogObserver;
-    let selectedTagSlugs = [];
     let restoringCatalogState = false;
 
     function saveCatalogState() {
@@ -87,16 +78,27 @@
             minPrice: document.getElementById('minPriceFilter').value,
             maxPrice: document.getElementById('maxPriceFilter').value,
             showArchive: document.getElementById('showArchiveFilter').checked,
-            tags: selectedTagSlugs,
         });
     }
-    function updateCartChip() {
-        document.querySelector('#cartChip span').textContent = String(window.scakCart.count());
+
+    function whatsappEnquiryUrl(product) {
+        const productUrl = `${window.location.origin}/catalog/${encodeURIComponent(product.slug)}`;
+        const rate = Number(product.price);
+        const formattedRate = Number.isInteger(rate) ? rate.toFixed(0) : rate.toFixed(2);
+        const message = [
+            'Hello SCAK, I am interested in this product:',
+            product.name,
+            `Wholesale rate: Rs. ${formattedRate}`,
+            product.sku ? `SKU: ${product.sku}` : '',
+            productUrl,
+        ].filter(Boolean).join('\n');
+
+        return `https://wa.me/919350188297?text=${encodeURIComponent(message)}`;
     }
 
     function productCard(product) {
         const button = product.is_active
-            ? `<button class="btn-primary" onclick="window.scakCart.add(${product.id}); updateCartChip();">Add to Cart</button>`
+            ? `<a class="btn btn-primary" href="${whatsappEnquiryUrl(product)}" target="_blank" rel="noopener" onclick="saveCatalogState()">Enquire on WhatsApp</a>`
             : `<button class="btn-secondary" disabled>Archived</button>`;
 
         return `
@@ -114,8 +116,7 @@
     }
 
     function renderGroupedProducts(products) {
-        const hasFilters = selectedTagSlugs.length
-            || document.getElementById('minPriceFilter').value
+        const hasFilters = document.getElementById('minPriceFilter').value
             || document.getElementById('maxPriceFilter').value
             || document.getElementById('searchFilter').value
             || document.getElementById('showArchiveFilter').checked
@@ -149,17 +150,6 @@
     async function loadFilters() {
         const response = await fetch('{{ route('filters.index') }}', { headers: { Accept: 'application/json' } });
         const data = await response.json();
-        const tagFilterList = document.getElementById('tagFilterList');
-
-        (data.tags || []).forEach(option => {
-            const id = `tag-filter-${option.slug}`;
-            const label = document.createElement('label');
-            label.className = 'pill';
-            label.style.justifyContent = 'flex-start';
-            label.innerHTML = `<input type="checkbox" value="${option.slug}" id="${id}" style="width:auto;"> ${option.name} (${option.products_count})`;
-            tagFilterList.appendChild(label);
-        });
-
         if (data.price) {
             document.getElementById('minPriceFilter').placeholder = String(Math.floor(data.price.min || 0));
             document.getElementById('maxPriceFilter').placeholder = String(Math.ceil(data.price.max || 0));
@@ -176,7 +166,6 @@
 
         if (search) params.set('search', search);
         if (sort) params.set('sort', sort);
-        selectedTagSlugs.forEach(tag => params.append('tags[]', tag));
         if (minPrice) params.set('min_price', minPrice);
         if (maxPrice) params.set('max_price', maxPrice);
         if (showArchive) params.set('include_archived', '1');
@@ -198,8 +187,7 @@
         const queryMinPrice = params.get('min_price') || '';
         const queryMaxPrice = params.get('max_price') || '';
         const queryShowArchive = params.get('include_archived') === '1';
-        const queryTags = params.getAll('tags[]').filter(Boolean);
-        const hasQueryFilters = querySearch || querySort || queryMinPrice || queryMaxPrice || queryShowArchive || queryTags.length;
+        const hasQueryFilters = querySearch || querySort || queryMinPrice || queryMaxPrice || queryShowArchive;
 
         if (!hasQueryFilters) {
             return false;
@@ -211,12 +199,6 @@
         document.getElementById('minPriceFilter').value = queryMinPrice;
         document.getElementById('maxPriceFilter').value = queryMaxPrice;
         document.getElementById('showArchiveFilter').checked = queryShowArchive;
-        selectedTagSlugs = queryTags;
-
-        document.querySelectorAll('#tagFilterList input[type="checkbox"]').forEach(input => {
-            input.checked = selectedTagSlugs.includes(input.value);
-        });
-
         return true;
     }
 
@@ -312,10 +294,6 @@
 
     document.getElementById('applyFiltersButton').addEventListener('click', () => loadProducts(true));
     document.getElementById('clearFiltersButton').addEventListener('click', () => {
-        selectedTagSlugs = [];
-        document.querySelectorAll('#tagFilterList input[type="checkbox"]').forEach(input => {
-            input.checked = false;
-        });
         document.getElementById('minPriceFilter').value = '';
         document.getElementById('maxPriceFilter').value = '';
         document.getElementById('showArchiveFilter').checked = false;
@@ -331,12 +309,6 @@
     });
     document.getElementById('closeFilterDrawer').addEventListener('click', closeDrawer);
     document.getElementById('filterOverlay').addEventListener('click', closeDrawer);
-    document.getElementById('tagFilterList').addEventListener('change', () => {
-        selectedTagSlugs = Array.from(document.querySelectorAll('#tagFilterList input[type="checkbox"]:checked'))
-            .map(input => input.value);
-        saveCatalogState();
-    });
-    document.getElementById('cartChip').addEventListener('click', saveCatalogState);
     window.addEventListener('scroll', () => {
         if (!catalogLoading && !restoringCatalogState) {
             saveCatalogState();
@@ -369,12 +341,6 @@
         document.getElementById('minPriceFilter').value = state.minPrice || '';
         document.getElementById('maxPriceFilter').value = state.maxPrice || '';
         document.getElementById('showArchiveFilter').checked = !!state.showArchive;
-        selectedTagSlugs = Array.isArray(state.tags) ? state.tags : [];
-
-        document.querySelectorAll('#tagFilterList input[type="checkbox"]').forEach(input => {
-            input.checked = selectedTagSlugs.includes(input.value);
-        });
-
         await loadProducts(true);
 
         const targetPage = Number(state.page || 1);
@@ -388,7 +354,6 @@
         });
     }
 
-    updateCartChip();
     setupInfiniteScroll();
     loadFilters().then(() => restoreCatalogStateIfNeeded());
 </script>

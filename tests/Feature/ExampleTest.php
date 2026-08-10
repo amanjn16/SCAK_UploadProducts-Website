@@ -30,6 +30,19 @@ class ExampleTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_storefront_uses_whatsapp_enquiries_without_cart_or_tag_filters(): void
+    {
+        $this->get('/catalog')
+            ->assertOk()
+            ->assertSee('Enquire on WhatsApp')
+            ->assertSee('Search by title or SKU')
+            ->assertDontSee('Add to Cart')
+            ->assertDontSee('Open cart')
+            ->assertDontSee('<label>Tags</label>', false);
+
+        $this->get('/cart')->assertRedirect('/catalog');
+    }
+
     public function test_customer_web_admin_and_otp_routes_are_disabled(): void
     {
         $this->postJson('/auth/customer/request-otp', ['phone' => '9876543210'])->assertNotFound();
