@@ -100,6 +100,73 @@ class ExampleTest extends TestCase
         ]);
     }
 
+    public function test_guest_can_voluntarily_submit_phone_without_otp(): void
+    {
+        $response = $this->postJson('/auth/customer/submit-phone', [
+            'phone' => '9876543210',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('phone', '+919876543210');
+
+        $this->assertGuest();
+        $this->assertSame('+919876543210', session('scak_customer_phone'));
+        $this->assertDatabaseHas('users', [
+            'phone' => '+919876543210',
+            'role' => User::ROLE_CUSTOMER,
+            'phone_verified_at' => null,
+        ]);
+    }
+
+    public function test_guest_with_submitted_phone_can_place_order_without_otp(): void
+    {
+        $product = Product::query()->create([
+            'name' => 'Guest Order Suit',
+            'slug' => 'guest-order-suit',
+            'sku' => 'S2468',
+            'price' => 550,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        $this->postJson('/auth/customer/submit-phone', [
+            'phone' => '9876543210',
+        ])->assertOk();
+
+        $this->postJson('/order-requests', [
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1],
+            ],
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('order_requests', [
+            'customer_phone' => '+919876543210',
+            'customer_name' => 'SCAK Customer',
+        ]);
+    }
+
+    public function test_guest_without_submitted_phone_cannot_place_order(): void
+    {
+        $product = Product::query()->create([
+            'name' => 'Phone Required Suit',
+            'slug' => 'phone-required-suit',
+            'sku' => 'S1357',
+            'price' => 625,
+            'status' => 'active',
+            'is_active' => true,
+            'published_at' => now(),
+        ]);
+
+        $this->postJson('/order-requests', [
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 1],
+            ],
+        ])->assertStatus(422)
+            ->assertJsonPath('message', 'Please submit your phone number before placing the order.');
+    }
+
     public function test_admin_can_list_products_from_api(): void
     {
         $admin = User::query()->create([

@@ -19,6 +19,7 @@ Route::get('/media/products/{product:id}/pdf', [ProductPdfController::class, 'sh
 Route::redirect('/bucket', '/cart');
 Route::post('/auth/customer/request-otp', [CustomerAuthController::class, 'requestOtp'])->name('customer.auth.request-otp');
 Route::post('/auth/customer/verify-otp', [CustomerAuthController::class, 'verifyOtp'])->name('customer.auth.verify-otp');
+Route::post('/auth/customer/submit-phone', [CustomerAuthController::class, 'submitPhone'])->name('customer.auth.submit-phone');
 Route::post('/auth/logout', [CustomerAuthController::class, 'logout'])->middleware('auth')->name('auth.logout');
 
 Route::middleware(['track.visitor'])->group(function (): void {
@@ -31,9 +32,7 @@ Route::middleware(['track.visitor'])->group(function (): void {
     Route::get('/filters', [FilterController::class, 'index'])->name('filters.index');
 });
 
-Route::middleware(['customer.auth'])->group(function (): void {
-    Route::post('/order-requests', [CustomerOrderRequestController::class, 'store'])->name('order-requests.store');
-});
+Route::post('/order-requests', [CustomerOrderRequestController::class, 'store'])->name('order-requests.store');
 
 Route::middleware(['customer.auth', 'admin.role'])->group(function (): void {
     Route::get('/admin', AdminDashboardController::class)->name('admin.dashboard');

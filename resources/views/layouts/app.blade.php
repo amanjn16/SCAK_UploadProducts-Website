@@ -472,7 +472,7 @@
     </style>
     @stack('head')
 </head>
-<body class="@guest auth-locked @endguest">
+<body>
     @if(!empty($storefrontGroupLinks))
         <div class="announcement-bar" aria-label="Join our groups">
             <div class="announcement-track">
@@ -506,7 +506,7 @@
                     </svg>
                 </button>
             @else
-                <button class="btn-secondary icon-btn" type="button" aria-label="Verify by OTP" title="Verify by OTP" onclick="window.scakAuthPrompt?.open()">
+                <button class="btn-secondary icon-btn" type="button" aria-label="Share phone number" title="Share phone number" onclick="window.scakAuthPrompt?.open()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M4 4h16v16H4z"/>
                         <path d="M8 10h8"/>

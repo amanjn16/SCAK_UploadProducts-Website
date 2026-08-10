@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\OrderRequest;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -15,6 +16,13 @@ class OrderRequestController extends Controller
     public function store(StoreOrderRequest $request): JsonResponse
     {
         $user = $request->user();
+        if (! $user && $request->session()->has('scak_customer_phone')) {
+            $user = User::query()
+                ->where('phone', $request->session()->get('scak_customer_phone'))
+                ->first();
+        }
+
+        abort_unless($user, 422, 'Please submit your phone number before placing the order.');
         $validated = $request->validated();
 
         $products = Product::query()
