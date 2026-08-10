@@ -36,6 +36,8 @@ class ExampleTest extends TestCase
             ->assertOk()
             ->assertSee('Enquire on WhatsApp')
             ->assertSee('Search by title or SKU')
+            ->assertSee('Enter 10-digit number')
+            ->assertDontSee('placeholder="9997558700"', false)
             ->assertDontSee('Add to Cart')
             ->assertDontSee('Open cart')
             ->assertDontSee('<label>Tags</label>', false);

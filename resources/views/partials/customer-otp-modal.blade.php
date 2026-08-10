@@ -12,7 +12,7 @@
             </div>
             <div class="field" style="margin-top:18px;">
                 <label for="customerPhoneInput">Phone number</label>
-                <input id="customerPhoneInput" inputmode="numeric" pattern="[0-9]*" autocomplete="tel" placeholder="9997558700" maxlength="10">
+                <input id="customerPhoneInput" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Enter 10-digit number" maxlength="10" value="">
             </div>
             <button class="btn-primary" id="customerPhoneSubmitButton" style="width:100%; margin-top:16px;" type="button">Submit</button>
             <p class="muted" id="customerOtpMessage" style="margin:14px 0 0;"></p>

@@ -215,6 +215,12 @@
             font-size: 0.84rem;
             line-height: 1.2;
         }
+        .product-enquire-btn {
+            text-align: center;
+        }
+        .enquire-label-short {
+            display: none;
+        }
         .muted { color: #6d5842; }
         .pill {
             display: inline-flex;
@@ -434,6 +440,17 @@
             }
             .product-card-title {
                 font-size: 0.78rem;
+            }
+            .product-enquire-btn {
+                padding: 9px 6px;
+                font-size: 0.78rem;
+                white-space: nowrap;
+            }
+            .enquire-label-full {
+                display: none;
+            }
+            .enquire-label-short {
+                display: inline;
             }
             .topbar {
                 width: calc(100vw - 10px);

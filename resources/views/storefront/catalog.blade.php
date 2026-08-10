@@ -98,7 +98,7 @@
 
     function productCard(product) {
         const button = product.is_active
-            ? `<a class="btn btn-primary" href="${whatsappEnquiryUrl(product)}" target="_blank" rel="noopener" onclick="saveCatalogState()">Enquire on WhatsApp</a>`
+            ? `<a class="btn btn-primary product-enquire-btn" href="${whatsappEnquiryUrl(product)}" target="_blank" rel="noopener" onclick="saveCatalogState()"><span class="enquire-label-full">Enquire on WhatsApp</span><span class="enquire-label-short">Enquire</span></a>`
             : `<button class="btn-secondary" disabled>Archived</button>`;
 
         return `
