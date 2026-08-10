@@ -39,6 +39,8 @@ class Product extends Model
         'legacy_published_at',
         'legacy_modified_at',
         'legacy_imported_at',
+        'source_system',
+        'source_id',
     ];
 
     protected $appends = ['cover_image_url', 'cover_image_thumb_url', 'cover_image_original_url', 'pdf_url', 'pdf_name'];

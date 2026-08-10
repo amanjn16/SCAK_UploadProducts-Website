@@ -22,6 +22,8 @@ class ProductImage extends Model
         'sort_order',
         'is_cover',
         'legacy_wordpress_attachment_id',
+        'source_system',
+        'source_id',
     ];
 
     protected $appends = ['url', 'medium_url', 'thumb_url'];

@@ -1,4 +1,3 @@
-@guest
     <div id="customerOtpOverlay" class="drawer-overlay"></div>
     <div id="customerOtpModalShell" class="otp-modal-shell">
         <div id="customerOtpModal" class="panel" style="width:min(420px, calc(100vw - 24px)); max-width:100%; padding:22px;">
@@ -97,4 +96,3 @@
         })();
     </script>
     @endpush
-@endguest

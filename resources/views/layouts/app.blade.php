@@ -493,27 +493,17 @@
         </div>
     @endif
     <header class="topbar">
-        <a class="brand" href="{{ auth()->check() ? route('catalog') : route('login') }}">
+        <a class="brand" href="{{ route('catalog') }}">
             <img src="{{ $brandLogoUrl }}" alt="SCAK">
         </a>
         <nav class="nav">
-            @auth
-                <button class="btn-secondary icon-btn" id="logoutButton" type="button" aria-label="Logout" title="Logout">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                        <path d="M16 17l5-5-5-5"/>
-                        <path d="M21 12H9"/>
-                    </svg>
-                </button>
-            @else
-                <button class="btn-secondary icon-btn" type="button" aria-label="Share phone number" title="Share phone number" onclick="window.scakAuthPrompt?.open()">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M4 4h16v16H4z"/>
-                        <path d="M8 10h8"/>
-                        <path d="M8 14h5"/>
-                    </svg>
-                </button>
-            @endauth
+            <button class="btn-secondary icon-btn" type="button" aria-label="Phone number" title="Phone number" onclick="window.scakAuthPrompt?.open()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 4h16v16H4z"/>
+                    <path d="M8 10h8"/>
+                    <path d="M8 14h5"/>
+                </svg>
+            </button>
         </nav>
     </header>
     <main class="shell">
@@ -580,19 +570,6 @@
             }
         };
 
-        const logoutButton = document.getElementById('logoutButton');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', async () => {
-                await fetch('{{ route('auth.logout') }}', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': window.scak.csrfToken,
-                        'Accept': 'application/json'
-                    }
-                });
-                window.location.href = '{{ route('login') }}';
-            });
-        }
 
         const topbar = document.querySelector('.topbar');
         let lastScrollY = window.scrollY;

@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Models\Category;
 use App\Models\City;
 use App\Models\LegacyAnalyticsEvent;
-use App\Models\OtpChallenge;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Supplier;
@@ -14,6 +13,7 @@ use App\Models\VisitorSession;
 use App\Services\ProductUpsertService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
@@ -30,32 +30,65 @@ class ExampleTest extends TestCase
         $response->assertOk();
     }
 
-    public function test_customer_can_request_and_verify_otp(): void
+    public function test_customer_web_admin_and_otp_routes_are_disabled(): void
     {
-        $requestResponse = $this->postJson('/auth/customer/request-otp', [
-            'name' => 'Aman',
-            'phone' => '9876543210',
-            'city' => 'Hisar',
+        $this->postJson('/auth/customer/request-otp', ['phone' => '9876543210'])->assertNotFound();
+        $this->postJson('/auth/customer/verify-otp', ['phone' => '9876543210', 'code' => '1234'])->assertNotFound();
+        $this->get('/admin')->assertRedirect('/catalog');
+        $this->get('/login')->assertRedirect('/catalog');
+        $this->get('/apps')->assertRedirect('/catalog');
+    }
+
+    public function test_sale_catalog_sync_is_authenticated_and_idempotent(): void
+    {
+        config(['scak.integrations.sale.token' => 'test-sale-token']);
+        Storage::fake('products');
+        Http::fake([
+            'https://sale.scak.in/*' => Http::response(
+                base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='),
+                200,
+                ['Content-Type' => 'image/png']
+            ),
         ]);
 
-        $requestResponse->assertAccepted();
+        $payload = [
+            'source_id' => '42',
+            'title' => 'Sale Cotton Suit',
+            'price' => 550,
+            'brand' => 'Ganga',
+            'remarks' => 'Internal Sale remark',
+            'status' => 'active',
+            'images' => [
+                ['source_id' => '4201', 'url' => 'https://sale.scak.in/uploads/42/photo.webp', 'is_cover' => true],
+            ],
+        ];
 
-        $challenge = OtpChallenge::query()->latest()->firstOrFail();
+        $this->withToken('test-sale-token')
+            ->postJson('/integrations/sale/products', $payload)
+            ->assertOk();
 
-        $verifyResponse = $this->postJson('/auth/customer/verify-otp', [
-            'phone' => '9876543210',
-            'code' => $challenge->code,
+        $payload['price'] = 575;
+        $this->withToken('test-sale-token')
+            ->postJson('/integrations/sale/products', $payload)
+            ->assertOk();
+
+        $this->assertDatabaseCount('products', 1);
+        $this->assertDatabaseCount('product_images', 1);
+        $this->assertDatabaseHas('products', [
+            'source_system' => 'sale_scak',
+            'source_id' => '42',
+            'price' => 575,
+            'status' => 'active',
+        ]);
+        $this->assertDatabaseHas('product_images', [
+            'source_system' => 'sale_scak',
+            'source_id' => '4201',
+            'is_cover' => true,
         ]);
 
-        $verifyResponse
-            ->assertOk()
-            ->assertJsonPath('user.phone', '+919876543210');
-
-        $this->assertAuthenticated();
-        $this->assertDatabaseHas('users', [
-            'phone' => '+919876543210',
-            'role' => User::ROLE_CUSTOMER,
-        ]);
+        $this->withToken('wrong-token')
+            ->postJson('/integrations/sale/products', $payload)
+            ->assertUnauthorized();
     }
 
     public function test_authenticated_customer_can_submit_bucket_order(): void

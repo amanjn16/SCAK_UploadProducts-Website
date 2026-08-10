@@ -52,4 +52,9 @@ return [
         'uploads_path' => env('WP_UPLOADS_PATH'),
         'archive_path' => env('WP_ARCHIVE_PATH', storage_path('app/private/wordpress-archives')),
     ],
+    'integrations' => [
+        'sale' => [
+            'token' => env('SALE_CATALOG_SYNC_TOKEN'),
+        ],
+    ],
 ];

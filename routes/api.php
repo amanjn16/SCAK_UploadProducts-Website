@@ -18,10 +18,14 @@ use App\Http\Controllers\Api\Admin\TagController;
 use App\Http\Controllers\Api\Admin\VisitorSessionController;
 use App\Http\Controllers\Api\Admin\SystemHealthController;
 use App\Http\Controllers\Api\Admin\StorefrontSettingsController;
+use App\Http\Controllers\Api\SaleCatalogController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/auth/admin/request-otp', [AdminAuthController::class, 'requestOtp']);
 Route::post('/auth/admin/verify-otp', [AdminAuthController::class, 'verifyOtp']);
+
+Route::post('/integrations/sale/products', [SaleCatalogController::class, 'upsert']);
+Route::delete('/integrations/sale/products/{sourceId}', [SaleCatalogController::class, 'archive']);
 
 Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(function (): void {
     Route::get('/products', [AdminProductController::class, 'index']);

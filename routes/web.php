@@ -4,8 +4,6 @@ use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\FilterController;
 use App\Http\Controllers\Api\OrderRequestController as CustomerOrderRequestController;
 use App\Http\Controllers\Api\CatalogController;
-use App\Http\Controllers\Web\AuthController;
-use App\Http\Controllers\Web\AdminDashboardController;
 use App\Http\Controllers\Web\AppDownloadsController;
 use App\Http\Controllers\Web\ProductImageController;
 use App\Http\Controllers\Web\ProductPdfController;
@@ -13,14 +11,11 @@ use App\Http\Controllers\Web\StorefrontController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [StorefrontController::class, 'catalog'])->name('landing');
-Route::get('/login', [AuthController::class, 'show'])->name('login');
+Route::redirect('/login', '/catalog');
 Route::get('/media/products/{image}', [ProductImageController::class, 'show'])->name('media.products.show');
 Route::get('/media/products/{product:id}/pdf', [ProductPdfController::class, 'show'])->name('media.products.pdf');
 Route::redirect('/bucket', '/cart');
-Route::post('/auth/customer/request-otp', [CustomerAuthController::class, 'requestOtp'])->name('customer.auth.request-otp');
-Route::post('/auth/customer/verify-otp', [CustomerAuthController::class, 'verifyOtp'])->name('customer.auth.verify-otp');
 Route::post('/auth/customer/submit-phone', [CustomerAuthController::class, 'submitPhone'])->name('customer.auth.submit-phone');
-Route::post('/auth/logout', [CustomerAuthController::class, 'logout'])->middleware('auth')->name('auth.logout');
 
 Route::middleware(['track.visitor'])->group(function (): void {
     Route::get('/catalog', [StorefrontController::class, 'catalog'])->name('catalog');
@@ -34,10 +29,8 @@ Route::middleware(['track.visitor'])->group(function (): void {
 
 Route::post('/order-requests', [CustomerOrderRequestController::class, 'store'])->name('order-requests.store');
 
-Route::middleware(['customer.auth', 'admin.role'])->group(function (): void {
-    Route::get('/admin', AdminDashboardController::class)->name('admin.dashboard');
-    Route::get('/apps', [AppDownloadsController::class, 'index'])->name('apps.index');
-});
+Route::redirect('/admin', '/catalog');
+Route::redirect('/apps', '/catalog');
 
 Route::get('/apps/download/{platform}', [AppDownloadsController::class, 'download'])
     ->middleware('signed')
