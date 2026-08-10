@@ -100,7 +100,7 @@ class ExampleTest extends TestCase
         ]);
     }
 
-    public function test_guest_can_voluntarily_submit_phone_without_otp(): void
+    public function test_guest_can_submit_phone_without_otp(): void
     {
         $response = $this->postJson('/auth/customer/submit-phone', [
             'phone' => '9876543210',
@@ -117,6 +117,19 @@ class ExampleTest extends TestCase
             'role' => User::ROLE_CUSTOMER,
             'phone_verified_at' => null,
         ]);
+    }
+
+    public function test_guest_must_submit_exactly_ten_phone_digits(): void
+    {
+        $this->postJson('/auth/customer/submit-phone', [
+            'phone' => '98765',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['phone']);
+
+        $this->postJson('/auth/customer/submit-phone', [
+            'phone' => '98765abcde',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['phone']);
     }
 
     public function test_guest_with_submitted_phone_can_place_order_without_otp(): void

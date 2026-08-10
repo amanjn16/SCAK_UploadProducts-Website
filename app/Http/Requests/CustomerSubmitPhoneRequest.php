@@ -14,7 +14,14 @@ class CustomerSubmitPhoneRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'digits:10'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'phone.digits' => 'Please enter a 10-digit phone number.',
         ];
     }
 }
