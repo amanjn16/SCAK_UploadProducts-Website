@@ -30,8 +30,6 @@ Route::middleware(['track.visitor'])->group(function (): void {
 Route::post('/order-requests', [CustomerOrderRequestController::class, 'store'])->name('order-requests.store');
 
 Route::redirect('/admin', '/catalog');
-Route::get('/apps', [AppDownloadsController::class, 'index'])->name('apps.index');
-
 Route::get('/apps/download/{platform}', [AppDownloadsController::class, 'download'])
     ->middleware('signed')
     ->name('apps.download');
