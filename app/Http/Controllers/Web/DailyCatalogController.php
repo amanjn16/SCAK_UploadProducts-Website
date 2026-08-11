@@ -14,7 +14,12 @@ class DailyCatalogController extends Controller
     {
         abort_unless(Storage::disk('local')->exists(DailyCatalogService::FILE_PATH), 404);
 
-        $headers = ['Content-Type' => 'application/pdf', 'Cache-Control' => 'public, max-age=900'];
+        $headers = [
+            'Content-Type' => 'application/pdf',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ];
         $name = 'SCAK-Daily-Catalog-'.now()->format('Y-m-d').'.pdf';
 
         return $request->boolean('download')

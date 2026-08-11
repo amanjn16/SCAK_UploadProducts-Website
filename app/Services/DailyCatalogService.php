@@ -46,13 +46,14 @@ class DailyCatalogService
         Storage::disk('local')->put(self::FILE_PATH, $output);
 
         $counts = $selected->countBy('bucket_key')->all();
+        $generatedAt = now();
         $meta = [
-            'generated_at' => now()->toIso8601String(),
+            'generated_at' => $generatedAt->toIso8601String(),
             'products_count' => $selected->count(),
             'bytes' => strlen($output),
             'size_mb' => round(strlen($output) / 1_000_000, 2),
             'bucket_counts' => $counts,
-            'url' => route('daily-catalog.show'),
+            'url' => route('daily-catalog.show').'?v='.$generatedAt->timestamp,
         ];
 
         AppSetting::put(self::META_KEY, $meta);
