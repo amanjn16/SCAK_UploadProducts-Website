@@ -10,4 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('scak:prune-operational-data')->dailyAt('02:30');
 Schedule::command('scak:cleanup-media')->dailyAt('03:00');
-Schedule::command('scak:generate-daily-catalog')->dailyAt('06:00')->withoutOverlapping();
+Schedule::command('scak:generate-daily-catalog')->dailyAt('06:00')->timezone('Asia/Kolkata')->withoutOverlapping();

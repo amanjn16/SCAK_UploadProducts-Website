@@ -33,7 +33,7 @@
         @if($logoData)<img class="logo" src="{{ $logoData }}">@endif
         <h1 class="brand">SCAK MART</h1>
         <p class="subtitle">Daily Wholesale Catalog</p>
-        <p>Generated {{ $generatedAt->format('d M Y, h:i A') }} | {{ $productsCount }} recent products</p>
+        <p>Generated {{ $generatedAt->timezone('Asia/Kolkata')->format('d M Y, h:i A') }} | {{ $productsCount }} recent products</p>
         <table class="index">
             @foreach($sections as $section)
                 <tr><td><a href="#section-{{ $section['key'] }}">{{ $section['label'] }} ({{ $section['products']->count() }} products)</a></td></tr>
