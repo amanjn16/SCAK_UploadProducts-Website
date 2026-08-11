@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <title>SCAK Daily Catalog</title>
     <style>
-        @page { margin: 22px; }
+        @page { margin: 6px; }
         body { margin: 0; font-family: DejaVu Sans, sans-serif; color: #261f1a; font-size: 11px; }
         a { color: #9f3a22; text-decoration: none; }
         .cover { text-align: center; page-break-after: always; padding: 28px 22px; }
@@ -14,18 +14,19 @@
         .index { width: 100%; border-collapse: separate; border-spacing: 0 9px; margin: 22px 0; }
         .index td { background: #f2e7d8; border-radius: 10px; padding: 13px; font-size: 14px; }
         .contact { margin-top: 26px; padding: 16px; border: 1px solid #d8c5ad; border-radius: 12px; line-height: 1.7; }
-        .page { page-break-after: always; position: relative; height: 760px; }
+        .page { page-break-after: always; }
         .page.last-page { page-break-after: auto; }
-        .section-title { background: #2f241d; color: white; padding: 10px 13px; border-radius: 9px; margin-bottom: 10px; font-size: 16px; }
+        .section-title { background: #2f241d; color: white; padding: 8px 12px; border-radius: 9px; margin-bottom: 5px; font-size: 15px; }
         .grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-        .grid td { width: 50%; vertical-align: top; padding: 6px; }
-        .card { border: 1px solid #dfd2c4; border-radius: 10px; overflow: hidden; height: 305px; }
-        .card img { display: block; width: 100%; height: 228px; object-fit: cover; }
-        .details { padding: 7px 9px; }
-        .name { font-size: 12px; font-weight: bold; height: 28px; overflow: hidden; }
-        .price { color: #9f3a22; font-size: 15px; font-weight: bold; margin-top: 4px; }
-        .sku { color: #6d5842; font-size: 9px; }
-        .footer { position: absolute; left: 6px; right: 6px; bottom: 0; border-top: 1px solid #dfd2c4; padding-top: 8px; text-align: center; }
+        .grid td { width: 33.333%; vertical-align: top; padding: 2px; }
+        .card { border: 1px solid #dfd2c4; border-radius: 10px; overflow: hidden; }
+        .card a { display: block; text-align: center; background: #f7f3ed; }
+        .card img { display: inline-block; width: auto; max-width: 100%; height: 232px; }
+        .details { padding: 2px 5px 3px; }
+        .name { font-size: 9px; font-weight: bold; height: 11px; overflow: hidden; }
+        .price { color: #9f3a22; font-size: 11px; font-weight: bold; margin-top: 1px; }
+        .sku { color: #6d5842; font-size: 7px; }
+        .footer { margin: 2px 2px 0; border-top: 1px solid #dfd2c4; padding-top: 2px; text-align: center; font-size: 8px; }
     </style>
 </head>
 <body>
@@ -50,12 +51,12 @@
 
     @php($finalSectionIndex = $sections->count() - 1)
     @foreach($sections as $sectionIndex => $section)
-        @foreach($section['products']->chunk(4) as $pageIndex => $products)
-            @php($isLastPage = $sectionIndex === $finalSectionIndex && $pageIndex === $section['products']->chunk(4)->count() - 1)
+        @foreach($section['products']->chunk(9) as $pageIndex => $products)
+            @php($isLastPage = $sectionIndex === $finalSectionIndex && $pageIndex === $section['products']->chunk(9)->count() - 1)
             <div class="page{{ $isLastPage ? ' last-page' : '' }}" @if($pageIndex === 0) id="section-{{ $section['key'] }}" @endif>
                 <div class="section-title">{{ $section['label'] }}</div>
                 <table class="grid">
-                    @foreach($products->chunk(2) as $row)
+                    @foreach($products->chunk(3) as $row)
                         <tr>
                             @foreach($row as $product)
                                 <td>
@@ -69,7 +70,7 @@
                                     </div>
                                 </td>
                             @endforeach
-                            @if($row->count() === 1)<td></td>@endif
+                            @for($empty = $row->count(); $empty < 3; $empty++)<td></td>@endfor
                         </tr>
                     @endforeach
                 </table>
