@@ -218,7 +218,18 @@ class DailyCatalogService
             'settings' => StorefrontSettingsController::shopDetails(),
             'generatedAt' => now(),
             'productsCount' => $selected->count(),
+            'logoData' => $this->brandLogoData(),
         ])->setPaper('a4')->output();
+    }
+
+    private function brandLogoData(): ?string
+    {
+        $path = public_path('assets/brand/scak.png');
+        if (! is_file($path)) {
+            return null;
+        }
+
+        return 'data:image/png;base64,'.base64_encode((string) file_get_contents($path));
     }
 
     private function removeOldestWithoutEmptyingBuckets(Collection $selected, int $count): Collection
