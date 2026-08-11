@@ -224,7 +224,7 @@ class DailyCatalogService
 
     private function brandLogoData(): ?string
     {
-        $path = public_path('assets/brand/scak.png');
+        $path = public_path('assets/brand/scak-logo.png');
         if (! is_file($path)) {
             return null;
         }
