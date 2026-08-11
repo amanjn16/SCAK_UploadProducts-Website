@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\FilterController;
 use App\Http\Controllers\Api\OrderRequestController as CustomerOrderRequestController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Web\AppDownloadsController;
+use App\Http\Controllers\Web\DailyCatalogController;
 use App\Http\Controllers\Web\ProductImageController;
 use App\Http\Controllers\Web\ProductPdfController;
 use App\Http\Controllers\Web\StorefrontController;
@@ -14,6 +15,7 @@ Route::get('/', [StorefrontController::class, 'catalog'])->name('landing');
 Route::redirect('/login', '/catalog');
 Route::get('/media/products/{image}', [ProductImageController::class, 'show'])->name('media.products.show');
 Route::get('/media/products/{product:id}/pdf', [ProductPdfController::class, 'show'])->name('media.products.pdf');
+Route::get('/catalog/daily.pdf', [DailyCatalogController::class, 'show'])->name('daily-catalog.show');
 Route::redirect('/bucket', '/cart');
 Route::post('/auth/customer/submit-phone', [CustomerAuthController::class, 'submitPhone'])->name('customer.auth.submit-phone');
 

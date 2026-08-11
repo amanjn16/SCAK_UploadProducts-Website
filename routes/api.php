@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\Admin\ActivityLogController;
 use App\Http\Controllers\Api\Admin\AppReleaseController;
 use App\Http\Controllers\Api\Admin\CustomerController;
+use App\Http\Controllers\Api\Admin\DailyCatalogController;
 use App\Http\Controllers\Api\Admin\GeneratedExportController;
 use App\Http\Controllers\Api\Admin\LegacyAnalyticsController;
 use App\Http\Controllers\Api\Admin\OrderRequestController as AdminOrderRequestController;
@@ -61,6 +62,8 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::get('/legacy-analytics', [LegacyAnalyticsController::class, 'index']);
     Route::get('/generated-exports/{generatedExport}', [GeneratedExportController::class, 'show']);
     Route::get('/system-health', [SystemHealthController::class, 'show']);
+    Route::get('/daily-catalog', [DailyCatalogController::class, 'show']);
+    Route::post('/daily-catalog/generate', [DailyCatalogController::class, 'store']);
     Route::get('/settings/storefront', [StorefrontSettingsController::class, 'show']);
     Route::patch('/settings/storefront', [StorefrontSettingsController::class, 'update']);
     Route::get('/settings/app-releases', [AppReleaseController::class, 'show']);
