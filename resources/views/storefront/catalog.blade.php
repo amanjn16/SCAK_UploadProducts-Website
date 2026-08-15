@@ -1,0 +1,362 @@
+@extends('layouts.app', ['title' => 'SCAK Catalog'])
+
+@section('content')
+    <section class="grid">
+        <div class="panel" style="padding: 20px;">
+            <div style="display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap;">
+                <strong style="font-size:1.05rem;">{{ $catalogTitle ?? 'Catalog' }}</strong>
+                <div id="catalogCount" class="muted">Showing 0 / 0 products</div>
+            </div>
+            <div class="field" style="margin-top: 14px;">
+                <label>Search</label>
+                <input id="searchFilter" placeholder="Search by title or SKU">
+            </div>
+        </div>
+        <div id="catalogResults"></div>
+        <div id="catalogEmpty" class="panel empty-state" style="display: none;">No products match your filters yet.</div>
+        <div id="catalogLoadingMore" class="panel" style="display: none; text-align: center;">Loading more products...</div>
+        <div id="catalogSentinel" style="height: 1px;"></div>
+    </section>
+
+    <button class="btn-primary floating-filter-btn" id="filterFab" type="button" aria-label="Open filters">
+            <img src="{{ $brandFilterUrl ?? (asset('assets/brand/filter.png') . '?v=20260327d') }}" alt="">
+    </button>
+    <div class="drawer-overlay" id="filterOverlay"></div>
+    <aside class="drawer" id="filterDrawer">
+        <div class="drawer-header">
+            <strong>Filter Products</strong>
+            <button class="btn-secondary" id="closeFilterDrawer" type="button">Close</button>
+        </div>
+        <div class="drawer-body">
+            <div class="field">
+                <label>Minimum rate</label>
+                <input id="minPriceFilter" inputmode="numeric" placeholder="0">
+            </div>
+            <div class="field">
+                <label>Maximum rate</label>
+                <input id="maxPriceFilter" inputmode="numeric" placeholder="0">
+            </div>
+            <label class="pill" style="justify-content: flex-start;">
+                <input id="showArchiveFilter" type="checkbox" style="width:auto;">
+                Show Archive
+            </label>
+            <div class="field">
+                <label>Sort</label>
+                <select id="sortFilter">
+                    <option value="">Latest</option>
+                    <option value="price_low">Rate: Low to High</option>
+                    <option value="price_high">Rate: High to Low</option>
+                    <option value="title">Title</option>
+                </select>
+            </div>
+            <button class="btn-primary" id="applyFiltersButton" type="button">Apply Filters</button>
+            <button class="btn-secondary" id="clearFiltersButton" type="button">Clear Filters</button>
+        </div>
+    </aside>
+    <a class="btn-primary whatsapp-chip" href="https://wa.me/919350188297?text={{ rawurlencode(config('scak.support.whatsapp_message')) }}" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+            <img src="{{ $brandWhatsappUrl ?? (asset('assets/brand/whatsapp.svg') . '?v=20260327e') }}" alt="">
+    </a>
+@endsection
+
+@push('scripts')
+<script>
+    let catalogProducts = [];
+    let catalogCurrentPage = 1;
+    let catalogLastPage = 1;
+    let catalogTotal = 0;
+    let catalogLoading = false;
+    let catalogObserver;
+    let restoringCatalogState = false;
+    const catalogProductType = @json($catalogProductType ?? null);
+
+    function saveCatalogState() {
+        window.scakCatalogState?.save({
+            page: catalogCurrentPage,
+            scrollY: window.scrollY,
+            savedAt: Date.now(),
+            search: document.getElementById('searchFilter').value,
+            sort: document.getElementById('sortFilter').value,
+            minPrice: document.getElementById('minPriceFilter').value,
+            maxPrice: document.getElementById('maxPriceFilter').value,
+            showArchive: document.getElementById('showArchiveFilter').checked,
+        });
+    }
+
+    function whatsappEnquiryUrl(product) {
+        const productUrl = `${window.location.origin}/catalog/${encodeURIComponent(product.slug)}`;
+        const rate = Number(product.price);
+        const formattedRate = Number.isInteger(rate) ? rate.toFixed(0) : rate.toFixed(2);
+        const message = [
+            'Hello SCAK, I am interested in this product:',
+            product.name,
+            `Price: Rs.${formattedRate}`,
+            product.sku ? `SKU: ${product.sku}` : '',
+            productUrl,
+        ].filter(Boolean).join('\n');
+
+        return `https://wa.me/919350188297?text=${encodeURIComponent(message)}`;
+    }
+
+    function productCard(product) {
+        const button = product.is_active
+            ? `<a class="btn btn-primary product-enquire-btn" href="${whatsappEnquiryUrl(product)}" target="_blank" rel="noopener" onclick="saveCatalogState()"><span class="enquire-label-full">Enquire on WhatsApp</span><span class="enquire-label-short">Enquire</span></a>`
+            : `<button class="btn-secondary" disabled>Archived</button>`;
+
+        return `
+            <article class="product-card">
+                <a href="/catalog/${product.slug}" onclick="saveCatalogState()">
+                    <img src="${product.cover_image_url || 'https://placehold.co/600x750?text=SCAK'}" alt="${product.name}">
+                </a>
+                <div class="product-card-body">
+                    <strong class="product-card-title">${product.name}</strong>
+                    <div style="font-size: 1.1rem;">Rs. ${Number(product.price).toFixed(2)}</div>
+                    ${button}
+                </div>
+            </article>
+        `;
+    }
+
+    function renderGroupedProducts(products) {
+        const hasFilters = document.getElementById('minPriceFilter').value
+            || document.getElementById('maxPriceFilter').value
+            || document.getElementById('searchFilter').value
+            || document.getElementById('showArchiveFilter').checked
+            || document.getElementById('sortFilter').value;
+
+        if (hasFilters) {
+            return `<div class="product-grid">${products.map(productCard).join('')}</div>`;
+        }
+
+        const groups = products.reduce((carry, product) => {
+            const dateSource = product.legacy_published_at || product.published_at || product.created_at || Date.now();
+            const dateLabel = new Date(dateSource).toLocaleDateString(undefined, {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            });
+
+            carry[dateLabel] = carry[dateLabel] || [];
+            carry[dateLabel].push(product);
+            return carry;
+        }, {});
+
+        return Object.entries(groups).map(([dateLabel, items]) => `
+            <section>
+                <div class="tile-date">${dateLabel}</div>
+                <div class="product-grid">${items.map(productCard).join('')}</div>
+            </section>
+        `).join('');
+    }
+
+    async function loadFilters() {
+        const response = await fetch('{{ route('filters.index') }}', { headers: { Accept: 'application/json' } });
+        const data = await response.json();
+        if (data.price) {
+            document.getElementById('minPriceFilter').placeholder = String(Math.floor(data.price.min || 0));
+            document.getElementById('maxPriceFilter').placeholder = String(Math.ceil(data.price.max || 0));
+        }
+    }
+
+    function buildProductParams() {
+        const params = new URLSearchParams();
+        const search = document.getElementById('searchFilter').value;
+        const sort = document.getElementById('sortFilter').value;
+        const minPrice = document.getElementById('minPriceFilter').value;
+        const maxPrice = document.getElementById('maxPriceFilter').value;
+        const showArchive = document.getElementById('showArchiveFilter').checked;
+
+        if (search) params.set('search', search);
+        if (sort) params.set('sort', sort);
+        if (minPrice) params.set('min_price', minPrice);
+        if (maxPrice) params.set('max_price', maxPrice);
+        if (showArchive) params.set('include_archived', '1');
+
+        return params;
+    }
+
+    function syncCatalogUrl() {
+        const params = buildProductParams();
+        if (catalogProductType) params.set('product_type', catalogProductType);
+        const query = params.toString();
+        const target = query ? `/catalog?${query}` : '/catalog';
+        window.history.replaceState({}, '', target);
+    }
+
+    function applyQueryFilters() {
+        const params = new URLSearchParams(window.location.search);
+        const querySearch = params.get('search') || '';
+        const querySort = params.get('sort') || '';
+        const queryMinPrice = params.get('min_price') || '';
+        const queryMaxPrice = params.get('max_price') || '';
+        const queryShowArchive = params.get('include_archived') === '1';
+        const hasQueryFilters = querySearch || querySort || queryMinPrice || queryMaxPrice || queryShowArchive;
+
+        if (!hasQueryFilters) {
+            return false;
+        }
+
+        restoringCatalogState = true;
+        document.getElementById('searchFilter').value = querySearch;
+        document.getElementById('sortFilter').value = querySort;
+        document.getElementById('minPriceFilter').value = queryMinPrice;
+        document.getElementById('maxPriceFilter').value = queryMaxPrice;
+        document.getElementById('showArchiveFilter').checked = queryShowArchive;
+        return true;
+    }
+
+    function syncCatalogView() {
+        const results = document.getElementById('catalogResults');
+        const empty = document.getElementById('catalogEmpty');
+        const loadingMore = document.getElementById('catalogLoadingMore');
+        const count = document.getElementById('catalogCount');
+
+        results.innerHTML = '';
+
+        if (!catalogProducts.length) {
+            empty.style.display = 'block';
+            loadingMore.style.display = 'none';
+            count.textContent = 'Showing 0 / 0 products';
+            return;
+        }
+
+        empty.style.display = 'none';
+        results.innerHTML = renderGroupedProducts(catalogProducts);
+        loadingMore.style.display = catalogCurrentPage < catalogLastPage ? 'block' : 'none';
+        count.textContent = `Showing ${catalogProducts.length} / ${Number.isFinite(catalogTotal) ? catalogTotal : catalogProducts.length} products`;
+    }
+
+    async function loadProducts(reset = true) {
+        if (catalogLoading) return;
+
+        if (reset) {
+            catalogProducts = [];
+            catalogCurrentPage = 1;
+            catalogLastPage = 1;
+            catalogTotal = 0;
+            syncCatalogView();
+        }
+
+        catalogLoading = true;
+        const params = buildProductParams();
+        params.set('page', String(catalogCurrentPage));
+
+        const response = await fetch(`/products?${params.toString()}`, { headers: { Accept: 'application/json' } });
+        const data = await response.json();
+
+        catalogCurrentPage = data.current_page || 1;
+        catalogLastPage = data.last_page || 1;
+        catalogTotal = data.total || catalogProducts.length;
+
+        if (Array.isArray(data.data) && data.data.length) {
+            const seen = new Set(catalogProducts.map(product => product.id));
+            const nextProducts = data.data.filter(product => !seen.has(product.id));
+            catalogProducts = [...catalogProducts, ...nextProducts];
+        }
+
+        catalogLoading = false;
+        syncCatalogView();
+        syncCatalogUrl();
+        saveCatalogState();
+
+        if (reset) {
+            closeDrawer();
+        }
+    }
+
+    async function loadMoreProducts() {
+        if (catalogLoading || catalogCurrentPage >= catalogLastPage) return;
+
+        catalogCurrentPage += 1;
+        await loadProducts(false);
+    }
+
+    function setupInfiniteScroll() {
+        const sentinel = document.getElementById('catalogSentinel');
+        if (!sentinel) return;
+
+        if (catalogObserver) {
+            catalogObserver.disconnect();
+        }
+
+        catalogObserver = new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && !restoringCatalogState) {
+                    loadMoreProducts();
+                }
+            });
+        }, { rootMargin: '240px 0px' });
+
+        catalogObserver.observe(sentinel);
+    }
+
+    function closeDrawer() {
+        document.getElementById('filterDrawer').classList.remove('open');
+        document.getElementById('filterOverlay').classList.remove('open');
+    }
+
+    document.getElementById('applyFiltersButton').addEventListener('click', () => loadProducts(true));
+    document.getElementById('clearFiltersButton').addEventListener('click', () => {
+        document.getElementById('minPriceFilter').value = '';
+        document.getElementById('maxPriceFilter').value = '';
+        document.getElementById('showArchiveFilter').checked = false;
+        document.getElementById('sortFilter').value = '';
+        loadProducts(true);
+    });
+    document.getElementById('searchFilter').addEventListener('keydown', event => {
+        if (event.key === 'Enter') loadProducts(true);
+    });
+    document.getElementById('filterFab').addEventListener('click', () => {
+        document.getElementById('filterDrawer').classList.add('open');
+        document.getElementById('filterOverlay').classList.add('open');
+    });
+    document.getElementById('closeFilterDrawer').addEventListener('click', closeDrawer);
+    document.getElementById('filterOverlay').addEventListener('click', closeDrawer);
+    window.addEventListener('scroll', () => {
+        if (!catalogLoading && !restoringCatalogState) {
+            saveCatalogState();
+        }
+    }, { passive: true });
+
+    async function restoreCatalogStateIfNeeded() {
+        if (applyQueryFilters()) {
+            await loadProducts(true);
+            restoringCatalogState = false;
+            return;
+        }
+
+        const state = window.scakCatalogState?.read();
+
+        if (!state) {
+            await loadProducts(true);
+            return;
+        }
+
+        if (!state.savedAt || (Date.now() - Number(state.savedAt)) > (30 * 60 * 1000)) {
+            window.scakCatalogState?.clear();
+            await loadProducts(true);
+            return;
+        }
+
+        restoringCatalogState = true;
+        document.getElementById('searchFilter').value = state.search || '';
+        document.getElementById('sortFilter').value = state.sort || '';
+        document.getElementById('minPriceFilter').value = state.minPrice || '';
+        document.getElementById('maxPriceFilter').value = state.maxPrice || '';
+        document.getElementById('showArchiveFilter').checked = !!state.showArchive;
+        await loadProducts(true);
+
+        const targetPage = Number(state.page || 1);
+        while (catalogCurrentPage < targetPage && catalogCurrentPage < catalogLastPage) {
+            await loadMoreProducts();
+        }
+
+        window.requestAnimationFrame(() => {
+            window.scrollTo({ top: Number(state.scrollY || 0), behavior: 'auto' });
+            restoringCatalogState = false;
+        });
+    }
+
+    setupInfiniteScroll();
+    loadFilters().then(() => restoreCatalogStateIfNeeded());
+</script>
+@endpush

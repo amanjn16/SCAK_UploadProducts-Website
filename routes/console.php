@@ -1,0 +1,14 @@
+<?php
+
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
+
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
+
+Schedule::command('scak:prune-operational-data')->dailyAt('02:30');
+Schedule::command('scak:cleanup-media')->dailyAt('03:00');
+Schedule::command('scak:generate-daily-catalog')->dailyAt('06:00')->timezone('Asia/Kolkata')->withoutOverlapping();
+Schedule::command('scak:fingerprint-product-images')->dailyAt('01:45')->withoutOverlapping();
