@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use App\Services\ProductUpsertService;
+use App\Support\PhoneNumber;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -19,7 +20,19 @@ class MobileAdminController extends Controller
     public function login(Request $request): JsonResponse
     {
         $data = $request->validate(['username' => ['required', 'string'], 'password' => ['required', 'string']]);
-        $user = User::query()->where('phone', $data['username'])->orWhere('email', $data['username'])->first();
+        $submittedUsername = $data['username'];
+        $username = $submittedUsername;
+        if (filter_var($submittedUsername, FILTER_VALIDATE_EMAIL) === false) {
+            try {
+                $username = PhoneNumber::normalizeIndian($username);
+            } catch (\InvalidArgumentException) {
+                // Keep the original value so invalid input receives the standard login error.
+            }
+        }
+        $user = User::query()
+            ->whereIn('phone', array_values(array_unique([$username, $submittedUsername])))
+            ->orWhere('email', $submittedUsername)
+            ->first();
         abort_unless($user?->isAdmin() && $user->is_active && filled($user->password) && Hash::check($data['password'], $user->password), 422, 'The login details are incorrect.');
         $user->tokens()->where('name', 'scak-admin-app')->delete();
 

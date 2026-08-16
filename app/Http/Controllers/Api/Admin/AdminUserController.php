@@ -85,7 +85,7 @@ class AdminUserController extends Controller
         return [
             'id' => $user->id,
             'name' => $user->name,
-            'phone' => $user->phone,
+            'phone' => PhoneNumber::displayIndian($user->phone),
             'city' => $user->city,
             'role' => $user->role,
             'is_active' => $user->is_active,

@@ -25,7 +25,7 @@
             <div class="admin-drawer-head">
                 <div>
                     <strong>Admin Menu</strong>
-                    <div class="admin-meta">{{ $customer?->phone }}</div>
+                    <div class="admin-meta">{{ \App\Support\PhoneNumber::displayIndian($customer?->phone) }}</div>
                 </div>
                 <button class="btn-secondary" id="closeAdminDrawerButton">Close</button>
             </div>
@@ -485,6 +485,11 @@
                     .replaceAll('>', '&gt;')
                     .replaceAll('"', '&quot;')
                     .replaceAll("'", '&#039;');
+            }
+
+            function displayPhone(value) {
+                const digits = String(value || '').replace(/\D/g, '');
+                return digits.length >= 10 ? digits.slice(-10) : digits;
             }
 
             function formatCurrency(value) {
@@ -1074,7 +1079,7 @@
                                     <div class="admin-card-head">
                                         <div>
                                             <h3 class="admin-card-title">${escapeHtml(order.reference_code)}</h3>
-                                            <div class="admin-meta">${escapeHtml(order.customer_name)} / ${escapeHtml(order.customer_phone)}</div>
+                                            <div class="admin-meta">${escapeHtml(order.customer_name)} / ${escapeHtml(displayPhone(order.customer_phone))}</div>
                                         </div>
                                         <span class="admin-pill">${escapeHtml(order.status)}</span>
                                     </div>
@@ -1116,7 +1121,7 @@
                             <tbody>
                                 ${state.customers.map((customer) => `
                                     <tr>
-                                        <td><strong>${escapeHtml(customer.name)}</strong><br><span class="admin-meta">${escapeHtml(customer.phone)}</span></td>
+                                        <td><strong>${escapeHtml(customer.name)}</strong><br><span class="admin-meta">${escapeHtml(displayPhone(customer.phone))}</span></td>
                                         <td>${escapeHtml(customer.city || '-')}</td>
                                         <td>${customer.total_orders}</td>
                                         <td>${customer.total_items_ordered}</td>
@@ -1200,7 +1205,7 @@
                         ${state.admins.map((admin) => `
                             <article class="admin-card compact">
                                 <h3 class="admin-card-title">${escapeHtml(admin.name)}</h3>
-                                <div class="admin-meta">${escapeHtml(admin.phone)} / ${escapeHtml(admin.role)}</div>
+                                <div class="admin-meta">${escapeHtml(displayPhone(admin.phone))} / ${escapeHtml(admin.role)}</div>
                                 <div class="admin-meta">${escapeHtml(admin.city || '-')} · Authenticator: ${admin.totp_enabled ? 'Enabled' : 'Setup pending'}</div>
                                 ${state.isSuperAdmin ? `
                                     <div class="admin-actions">
@@ -1218,7 +1223,7 @@
                     <tr>
                         <td>${escapeHtml(entry.action)}</td>
                         <td>${escapeHtml(entry.user?.name || '-')}</td>
-                        <td>${escapeHtml(entry.user?.phone || '-')}</td>
+                        <td>${escapeHtml(displayPhone(entry.user?.phone) || '-')}</td>
                         <td>${escapeHtml(entry.created_at || '-')}</td>
                         <td>${escapeHtml(JSON.stringify(entry.meta || {}))}</td>
                     </tr>
@@ -1228,7 +1233,7 @@
             function renderVisitors() {
                 elements.content.innerHTML = renderLogTable('Visitors', state.visitors, state.visitorMeta, (entry) => `
                     <tr>
-                        <td>${escapeHtml(entry.customer_name || entry.phone || '-')}</td>
+                        <td>${escapeHtml(entry.customer_name || displayPhone(entry.phone) || '-')}</td>
                         <td>${escapeHtml(entry.customer_city || '-')}</td>
                         <td>${escapeHtml(entry.current_page || entry.entry_page || '-')}</td>
                         <td>${entry.page_views}</td>
@@ -1242,7 +1247,7 @@
                 elements.content.innerHTML = renderLogTable('Legacy Analytics', state.analytics, state.analyticsMeta, (entry) => `
                     <tr>
                         <td>${escapeHtml(entry.event_type)}</td>
-                        <td>${escapeHtml(entry.customer_name || entry.phone || '-')}</td>
+                        <td>${escapeHtml(entry.customer_name || displayPhone(entry.phone) || '-')}</td>
                         <td>${escapeHtml(entry.customer_city || '-')}</td>
                         <td>${escapeHtml(entry.occurred_at || '-')}</td>
                         <td>${escapeHtml(JSON.stringify(entry.event_data || {}))}</td>
@@ -1665,7 +1670,7 @@
                     <div class="admin-modal-header">
                         <div>
                             <h2>${escapeHtml(order.reference_code)}</h2>
-                            <div class="admin-meta">${escapeHtml(order.customer_name)} / ${escapeHtml(order.customer_phone)}</div>
+                            <div class="admin-meta">${escapeHtml(order.customer_name)} / ${escapeHtml(displayPhone(order.customer_phone))}</div>
                         </div>
                         <button class="btn-secondary" id="closeAdminModalButton">Close</button>
                     </div>
@@ -1715,7 +1720,7 @@
                     <div class="admin-modal-header">
                         <div>
                             <h2>${escapeHtml(customer.name)}</h2>
-                            <div class="admin-meta">${escapeHtml(customer.phone)} / ${escapeHtml(customer.city || '-')}</div>
+                            <div class="admin-meta">${escapeHtml(displayPhone(customer.phone))} / ${escapeHtml(customer.city || '-')}</div>
                         </div>
                         <button class="btn-secondary" id="closeAdminModalButton">Close</button>
                     </div>

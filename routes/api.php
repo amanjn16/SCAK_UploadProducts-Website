@@ -53,7 +53,7 @@ Route::prefix('mobile')->group(function (): void {
 Route::post('/integrations/sale/products', [SaleCatalogController::class, 'upsert']);
 Route::delete('/integrations/sale/products/{sourceId}', [SaleCatalogController::class, 'archive']);
 
-Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(function (): void {
+Route::middleware(['auth:web,sanctum', 'admin.role'])->prefix('admin')->group(function (): void {
     Route::get('/products', [AdminProductController::class, 'index']);
     Route::get('/products/{product:id}', [AdminProductController::class, 'show']);
     Route::get('/order-requests', [AdminOrderRequestController::class, 'index']);
@@ -104,7 +104,7 @@ Route::middleware(['auth:sanctum', 'admin.role'])->prefix('admin')->group(functi
     Route::get('/settings/app-releases', [AppReleaseController::class, 'show']);
 });
 
-Route::middleware(['auth:sanctum', 'admin.role', 'super.admin'])->prefix('admin')->group(function (): void {
+Route::middleware(['auth:web,sanctum', 'admin.role', 'super.admin'])->prefix('admin')->group(function (): void {
     Route::get('/duplicate-products', [DuplicateProductController::class, 'index']);
     Route::post('/duplicate-products/merge', [DuplicateProductController::class, 'merge']);
     Route::delete('/duplicate-products/{product:id}', [DuplicateProductController::class, 'destroy']);

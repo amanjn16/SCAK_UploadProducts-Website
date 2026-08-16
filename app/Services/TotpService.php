@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\PhoneNumber;
 use InvalidArgumentException;
 
 class TotpService
@@ -32,7 +33,7 @@ class TotpService
     public function provisioningUri(string $secret, string $phone): string
     {
         $issuer = 'SCAK Admin';
-        $label = rawurlencode($issuer.':'.$phone);
+        $label = rawurlencode($issuer.':'.PhoneNumber::displayIndian($phone));
 
         return 'otpauth://totp/'.$label.'?secret='.$secret.'&issuer='.rawurlencode($issuer).'&digits=6&period=30';
     }

@@ -6,6 +6,13 @@ use InvalidArgumentException;
 
 class PhoneNumber
 {
+    public static function displayIndian(?string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
+
+        return strlen($digits) >= 10 ? substr($digits, -10) : $digits;
+    }
+
     public static function normalizeIndian(string $phone): string
     {
         $normalized = preg_replace('/\D+/', '', $phone) ?? '';
